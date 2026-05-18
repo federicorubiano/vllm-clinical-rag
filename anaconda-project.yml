@@ -1,0 +1,61 @@
+name: vllm-clinical-rag
+description: >
+  Production RAG system over the Merck Manual powered by vLLM.
+  Deployed via Anaconda CLI + Outerbounds.
+
+# ── Commands ──────────────────────────────────────────────────────────────────
+commands:
+  scrape:
+    unix: python scripts/scraper.py
+    description: "Fetch Merck Manual topics into data/raw/"
+
+  build-index:
+    unix: python scripts/build_index.py
+    description: "Chunk, embed, and build FAISS index from scraped data"
+
+  serve:
+    unix: uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
+    description: "Start the vLLM-backed Clinical Knowledge API"
+
+  demo:
+    unix: gradio src/gradio_app.py
+    description: "Launch the Gradio demo UI"
+
+  evaluate:
+    unix: python eval/run_eval.py
+    description: "Run evaluation harness on 5 benchmark queries"
+
+# ── Variables ─────────────────────────────────────────────────────────────────
+variables:
+  VLLM_MODEL:
+    description: "HuggingFace model ID for vLLM (e.g. mistralai/Mistral-7B-Instruct-v0.3)"
+    default: "mistralai/Mistral-7B-Instruct-v0.3"
+
+  VLLM_BASE_URL:
+    description: "vLLM OpenAI-compatible server URL"
+    default: "http://localhost:8001/v1"
+
+  EMBEDDING_MODEL:
+    description: "Sentence-transformer model for embeddings"
+    default: "thenlper/gte-large"
+
+  RERANKER_MODEL:
+    description: "Cross-encoder model for re-ranking"
+    default: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+  TOP_K_RETRIEVE:
+    description: "Number of chunks to retrieve before re-ranking"
+    default: "10"
+
+  TOP_K_RERANK:
+    description: "Number of chunks to pass to LLM after re-ranking"
+    default: "4"
+
+# ── Packages (mirrors environment.yml for Anaconda Project compatibility) ──────
+packages:
+  - python=3.11
+  - requests
+  - beautifulsoup4
+  - fastapi
+  - uvicorn
+  - jupyter

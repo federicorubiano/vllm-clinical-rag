@@ -1,0 +1,49 @@
+name: vllm-clinical-rag
+channels:
+  - main-x      # Anaconda early-access channel (vLLM, FAISS)
+  - main         # Anaconda stable channel
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11
+
+  # ── Data pipeline ──────────────────────────────────────────────────────────
+  - requests
+  - beautifulsoup4
+  - lxml
+  - tiktoken
+
+  # ── Embeddings & retrieval ─────────────────────────────────────────────────
+  - sentence-transformers
+  - faiss-gpu          # High-value package from Anaconda main-x
+  - rank-bm25          # BM25 for hybrid retrieval
+
+  # ── Re-ranking ─────────────────────────────────────────────────────────────
+  - pip:
+    - sentence-transformers  # cross-encoder re-ranker
+
+  # ── Inference ─────────────────────────────────────────────────────────────
+  - pip:
+    - vllm               # High-value package from Anaconda main-x
+                         # Requires CUDA-enabled GPU (16GB+ VRAM recommended)
+
+  # ── API layer ──────────────────────────────────────────────────────────────
+  - fastapi
+  - uvicorn
+  - pydantic
+
+  # ── Evaluation ────────────────────────────────────────────────────────────
+  - pip:
+    - evidently          # High-value package from Anaconda main-x
+
+  # ── Demo UI (optional) ────────────────────────────────────────────────────
+  - pip:
+    - gradio             # High-value package from Anaconda main-x
+
+  # ── Dev tooling ───────────────────────────────────────────────────────────
+  - jupyter
+  - ipykernel
+  - python-dotenv
+  - tqdm
+  - rich
