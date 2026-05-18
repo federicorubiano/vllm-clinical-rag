@@ -5,7 +5,7 @@
 A production RAG system that answers clinical questions grounded in the **Merck Manual Professional Edition**, powered by vLLM inference, FAISS + BM25 hybrid retrieval, and deployed via Anaconda CLI + Outerbounds.
 
 This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and tells a complete **"first install to production"** story:
-`ana login` → `ana feature enable main-x` → `ana ob deploy`
+`ana login` → `conda env create` → `ana ob deploy`
 
 ---
 
@@ -81,8 +81,9 @@ On Outerbounds (production):
 - Anaconda or Miniconda installed
 - [Anaconda CLI (`ana`)](https://anaconda.sh) installed
 - Python 3.11
-- An Outerbounds account (for `ana ob deploy`)
-- 16 GB+ GPU VRAM for local vLLM inference **OR** Outerbounds for cloud GPU
+- An Outerbounds account — required for GPU inference (vLLM has no Apple Silicon build; NVIDIA GPU needed for local inference)
+
+> **Mac users:** scraping, index building, and API testing all work locally. vLLM inference requires `ana ob deploy` — there is no local path on Apple Silicon.
 
 ---
 
@@ -109,8 +110,8 @@ vllm-clinical-rag/
 │   └── index/              # FAISS + BM25 indexes (git-ignored; reproduce via build_index)
 ├── ob_app.py               # Outerbounds deployment app (ana ob deploy reads this)
 ├── Dockerfile              # CUDA base image for Outerbounds
-├── environment.yml         # Conda environment — GPU/Outerbounds (faiss-gpu + vllm)
-├── environment-local.yml   # Conda environment — Mac/CPU dev (faiss-cpu, no vllm)
+├── environment.yml         # Conda env — GPU/Outerbounds; all packages from Anaconda main
+├── environment-local.yml   # Conda env — Mac/CPU dev; vllm omitted (no Apple Silicon build)
 ├── anaconda-project.yml    # Anaconda Project commands
 ├── test_api.py             # Quick connectivity test — run this first
 ├── .env.example            # All config vars with guidance
@@ -121,14 +122,13 @@ vllm-clinical-rag/
 
 ## Setup
 
-### Step 1: Login and enable main-x
+### Step 1: Login
 
 ```bash
 ana login
-ana feature enable main-x
 ```
 
-`main-x` is Anaconda's early-access channel where vLLM and faiss-gpu live.
+`faiss-cpu`, `sentence-transformers`, `gradio`, and `vllm` (CPU) are all on the Anaconda `main` channel. The GPU build of `vllm` is in progress — until it ships, the GPU environment installs it via pip automatically in the next step.
 
 ### Step 2: Create the environment
 
@@ -241,8 +241,8 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 
 ## Troubleshooting
 
-**`vllm` not found after `conda env create`**
-→ Make sure `ana feature enable main-x` ran successfully before creating the env.
+**`vllm` not found after `conda env create` on Mac**
+→ Expected — vLLM has no osx-arm64 conda build. The GPU environment installs it via pip automatically. If pip install also fails, you're on Apple Silicon without NVIDIA — use `ana ob deploy` for inference.
 
 **`ana ob deploy` says authorization required**
 → Run `ana ob configure <token>` first. Get your token from your Outerbounds admin.
@@ -265,15 +265,15 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 
 ## High-value packages showcased
 
-| Package | Role |
-|---|---|
-| **vLLM** | Production LLM inference — PagedAttention, concurrent batching |
-| **FAISS** | GPU-accelerated vector similarity search |
-| **Gradio** | Interactive demo UI |
-| **Evidently AI** | RAG evaluation and monitoring |
-| **sentence-transformers** | Text embeddings + cross-encoder reranking |
-| **FastAPI** | Production REST API |
-| **rank-bm25** | Sparse keyword search |
+| Package | Role | Source |
+|---|---|---|
+| **vLLM** | Production LLM inference — PagedAttention, concurrent batching | Anaconda `main` (linux-64); GPU build in progress |
+| **FAISS** | Vector similarity search — CPU via conda, GPU via Outerbounds | Anaconda `main` (faiss-cpu) |
+| **Gradio** | Interactive demo UI | Anaconda `main` |
+| **Evidently AI** | RAG evaluation and monitoring | pip |
+| **sentence-transformers** | Text embeddings + cross-encoder reranking | Anaconda `main` |
+| **FastAPI** | Production REST API | Anaconda `main` |
+| **rank-bm25** | Sparse keyword search | Anaconda `main` |
 
 ---
 

@@ -18,8 +18,7 @@ name: vllm-clinical-rag-local
 #   ❌  bash scripts/start_vllm.sh      — needs GPU (use ana ob deploy)
 # ─────────────────────────────────────────────────────────────────────────────
 channels:
-  - main-x      # Anaconda early-access channel — run `ana login` first
-  - main
+  - main         # faiss-cpu, sentence-transformers, gradio all live here
   - defaults
 
 dependencies:
