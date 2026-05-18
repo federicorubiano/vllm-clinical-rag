@@ -1,8 +1,7 @@
 name: vllm-clinical-rag
 channels:
-  - main-x      # Anaconda early-access channel (vLLM, FAISS)
-  - main         # Anaconda stable channel
-  - conda-forge
+  - main-x      # Anaconda early-access channel (vLLM, FAISS-GPU)
+  - main
   - defaults
 
 dependencies:
@@ -16,30 +15,13 @@ dependencies:
 
   # ── Embeddings & retrieval ─────────────────────────────────────────────────
   - sentence-transformers
-  - faiss-gpu          # High-value package from Anaconda main-x
-  - rank-bm25          # BM25 for hybrid retrieval
-
-  # ── Re-ranking ─────────────────────────────────────────────────────────────
-  - pip:
-    - sentence-transformers  # cross-encoder re-ranker
-
-  # ── Inference ─────────────────────────────────────────────────────────────
-  - pip:
-    - vllm               # High-value package from Anaconda main-x
-                         # Requires CUDA-enabled GPU (16GB+ VRAM recommended)
+  - faiss-gpu          # High-value package from Anaconda main-x — requires NVIDIA GPU
+  - rank-bm25
 
   # ── API layer ──────────────────────────────────────────────────────────────
   - fastapi
-  - uvicorn
+  - "uvicorn[standard]"
   - pydantic
-
-  # ── Evaluation ────────────────────────────────────────────────────────────
-  - pip:
-    - evidently          # High-value package from Anaconda main-x
-
-  # ── Demo UI (optional) ────────────────────────────────────────────────────
-  - pip:
-    - gradio             # High-value package from Anaconda main-x
 
   # ── Dev tooling ───────────────────────────────────────────────────────────
   - jupyter
@@ -47,3 +29,11 @@ dependencies:
   - python-dotenv
   - tqdm
   - rich
+
+  # ── pip-only packages ──────────────────────────────────────────────────────
+  - pip:
+    - vllm               # High-value package — requires CUDA GPU (16GB+ VRAM)
+    - evidently          # RAG evaluation + monitoring
+    - gradio             # Demo UI
+    - openai             # OpenAI-compatible client for vLLM
+    - mcp                # MCP server protocol

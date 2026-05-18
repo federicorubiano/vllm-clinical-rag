@@ -1,6 +1,6 @@
 # 🏥 Clinical Knowledge RAG — vLLM + Anaconda CLI + Outerbounds
 
-> **Owner:** Federico Rubiano ([@federicorubiano-prog](https://github.com/federicorubiano-prog)) | **Last tested:** 2026-05-18 | **Status:** Active | **Estimated time:** 60–90 minutes
+> **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Last tested:** 2026-05-18 | **Status:** Active | **Estimated time:** 60–90 minutes
 
 A production RAG system that answers clinical questions grounded in the **Merck Manual Professional Edition**, powered by vLLM inference, FAISS + BM25 hybrid retrieval, and deployed via Anaconda CLI + Outerbounds.
 
@@ -109,7 +109,8 @@ vllm-clinical-rag/
 │   └── index/              # FAISS + BM25 indexes (git-ignored; reproduce via build_index)
 ├── ob_app.py               # Outerbounds deployment app (ana ob deploy reads this)
 ├── Dockerfile              # CUDA base image for Outerbounds
-├── environment.yml         # Conda environment (main-x channel for vLLM + FAISS)
+├── environment.yml         # Conda environment — GPU/Outerbounds (faiss-gpu + vllm)
+├── environment-local.yml   # Conda environment — Mac/CPU dev (faiss-cpu, no vllm)
 ├── anaconda-project.yml    # Anaconda Project commands
 ├── test_api.py             # Quick connectivity test — run this first
 ├── .env.example            # All config vars with guidance
@@ -131,9 +132,16 @@ ana feature enable main-x
 
 ### Step 2: Create the environment
 
+**On a machine with an NVIDIA GPU** (or for Outerbounds deployment):
 ```bash
 conda env create -f environment.yml
 conda activate vllm-clinical-rag
+```
+
+**On a Mac or any CPU-only machine** (scraping, index building, and remote API testing work; vLLM inference runs on Outerbounds):
+```bash
+conda env create -f environment-local.yml
+conda activate vllm-clinical-rag-local
 ```
 
 ### Step 3: Configure your environment

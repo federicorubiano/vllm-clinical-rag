@@ -38,7 +38,7 @@ MANIFEST_PATH = OUTPUT_DIR / "manifest.json"
 HEADERS = {
     "User-Agent": (
         "vllm-clinical-rag/1.0 (educational demo; "
-        "github.com/federicorubiano-prog/vllm-clinical-rag)"
+        "github.com/federicorubiano/vllm-clinical-rag)"
     )
 }
 
@@ -66,7 +66,7 @@ TOPICS = [
     },
     {
         "slug": "acute-respiratory-distress-syndrome",
-        "url": "/professional/critical-care-medicine/respiratory-failure-and-mechanical-ventilation/acute-hypoxemic-respiratory-failure-ahrf-and-ards",
+        "url": "/professional/critical-care-medicine/respiratory-failure-and-mechanical-ventilation/overview-of-mechanical-ventilation",
         "section": "Critical Care",
     },
 
@@ -78,7 +78,7 @@ TOPICS = [
     },
     {
         "slug": "acute-abdomen",
-        "url": "/professional/gastrointestinal-disorders/acute-abdomen-and-surgical-gastroenterology/acute-abdomen",
+        "url": "/professional/gastrointestinal-disorders/acute-abdomen-and-surgical-gastroenterology/overview-of-acute-abdomen-and-surgical-gastroenterology",
         "section": "Gastrointestinal",
     },
     {

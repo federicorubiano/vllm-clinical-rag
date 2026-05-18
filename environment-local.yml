@@ -1,0 +1,57 @@
+name: vllm-clinical-rag-local
+# ─────────────────────────────────────────────────────────────────────────────
+# LOCAL / MAC DEVELOPMENT ENVIRONMENT
+# Use this on any machine without an NVIDIA GPU (MacBook, CI, etc.)
+#
+#   conda env create -f environment-local.yml
+#   conda activate vllm-clinical-rag-local
+#
+# Differences from environment.yml (GPU/Outerbounds):
+#   - faiss-cpu  instead of  faiss-gpu
+#   - vllm omitted  (no GPU — run via ana ob deploy)
+#
+# What you CAN do locally with this env:
+#   ✅  python scripts/scraper.py       — scrape Merck Manual
+#   ✅  python scripts/build_index.py   — build FAISS + BM25 indexes
+#   ✅  python test_api.py --url <endpoint>  — test a remote API
+#   ✅  python eval/run_eval.py --api-url <endpoint>
+#   ❌  bash scripts/start_vllm.sh      — needs GPU (use ana ob deploy)
+# ─────────────────────────────────────────────────────────────────────────────
+channels:
+  - main-x      # Anaconda early-access channel — run `ana login` first
+  - main
+  - defaults
+
+dependencies:
+  - python=3.11
+
+  # ── Data pipeline ──────────────────────────────────────────────────────────
+  - requests
+  - beautifulsoup4
+  - lxml
+  - tiktoken
+
+  # ── Embeddings & retrieval ─────────────────────────────────────────────────
+  - sentence-transformers
+  - faiss-cpu          # CPU fallback — works on Mac/Linux without NVIDIA GPU
+  - rank-bm25
+
+  # ── API layer ──────────────────────────────────────────────────────────────
+  - fastapi
+  - "uvicorn[standard]"
+  - pydantic
+
+  # ── Dev tooling ───────────────────────────────────────────────────────────
+  - jupyter
+  - ipykernel
+  - python-dotenv
+  - tqdm
+  - rich
+
+  # ── pip-only packages ──────────────────────────────────────────────────────
+  - pip:
+    - evidently          # RAG evaluation + monitoring
+    - gradio             # Demo UI
+    - openai             # OpenAI-compatible client (points to remote vLLM endpoint)
+    - mcp                # MCP server protocol
+    # vllm intentionally omitted — no GPU. Deploy with: ana ob deploy
