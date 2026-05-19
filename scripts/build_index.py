@@ -3,11 +3,10 @@ build_index.py
 --------------
 Chunks scraped Merck Manual text, embeds it, and builds:
   - data/index/merck.faiss      — FAISS dense vector index
-  - data/index/bm25.pkl         — BM25 sparse index
   - data/index/chunks.json      — chunk metadata (text, source, section, slug)
 
 Usage:
-    conda activate vllm-clinical-rag
+    conda activate vllm-rag
     python scripts/build_index.py
 
 Requires data/raw/ to be populated first (run scripts/scraper.py).
@@ -16,7 +15,6 @@ All packages from Anaconda main channel — no pip dependencies.
 """
 
 import json
-import pickle
 import logging
 from pathlib import Path
 
@@ -24,7 +22,6 @@ import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer
-from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 # ── Config ───────────────────────────────────────────────────────────────────
@@ -32,7 +29,6 @@ from tqdm import tqdm
 RAW_DIR       = Path("data/raw")
 INDEX_DIR     = Path("data/index")
 FAISS_PATH    = INDEX_DIR / "merck.faiss"
-BM25_PATH     = INDEX_DIR / "bm25.pkl"
 CHUNKS_PATH   = INDEX_DIR / "chunks.json"
 MANIFEST_PATH = RAW_DIR / "manifest.json"
 
@@ -151,15 +147,6 @@ def main():
     CHUNKS_PATH.write_text(json.dumps(all_chunks, indent=2), encoding="utf-8")
     log.info(f"Chunk metadata saved → {CHUNKS_PATH}")
 
-    # ── BM25 index ───────────────────────────────────────────────────────────
-    log.info("Building BM25 index...")
-    tokenized = [c["text"].lower().split() for c in all_chunks]
-    bm25 = BM25Okapi(tokenized)
-
-    with open(BM25_PATH, "wb") as f:
-        pickle.dump(bm25, f)
-    log.info(f"BM25 index saved → {BM25_PATH}")
-
     # ── FAISS index ───────────────────────────────────────────────────────────
     log.info(f"Loading embedding model: {EMBEDDING_MODEL}")
     model = SentenceTransformer(EMBEDDING_MODEL)
@@ -180,7 +167,6 @@ def main():
     log.info(f"  Chunks:    {len(all_chunks)}")
     log.info(f"  Embedding: {EMBEDDING_MODEL} (dim={dim})")
     log.info(f"  FAISS:     {FAISS_PATH}")
-    log.info(f"  BM25:      {BM25_PATH}")
     log.info(f"  Metadata:  {CHUNKS_PATH}")
     log.info("─────────────────────────────────────────────────────\n")
     log.info("Next: start the vLLM server, then run: uvicorn src.api:app --reload")

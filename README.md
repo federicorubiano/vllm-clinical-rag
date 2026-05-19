@@ -2,7 +2,7 @@
 
 > **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Last tested:** 2026-05-18 | **Status:** Active | **Estimated time:** 60–90 minutes
 
-A production RAG system that answers clinical questions grounded in the **Merck Manual Professional Edition**, powered by vLLM inference, FAISS + BM25 hybrid retrieval, and deployed via Anaconda CLI + Outerbounds.
+A production RAG system that answers clinical questions grounded in the **Merck Manual Professional Edition**, powered by vLLM inference, FAISS dense retrieval with cross-encoder reranking, and deployed via Anaconda CLI + Outerbounds.
 
 This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and tells a complete **"first install to production"** story:
 `ana login` → `conda env create` → `ana ob deploy`
@@ -30,7 +30,7 @@ This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and 
 
 ## What is FAISS?
 
-[FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers the semantic search leg of hybrid retrieval — finding chunks whose *meaning* matches the query, not just their keywords.
+[FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers semantic retrieval — finding chunks whose *meaning* matches the query, not just their keywords. A cross-encoder then reranks the top candidates for maximum relevance.
 
 ## What is Outerbounds?
 
@@ -50,7 +50,7 @@ This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and 
 | Outdated corpus | Watermarked PDF, no update path | Live scraper targeting merckmanuals.com |
 | Single-threaded inference | llama-cpp; no concurrency | vLLM with PagedAttention + continuous batching |
 | Self-judging evaluation | Mistral scored its own output | Custom heuristic scoring — no LLM-as-judge, fully reproducible; Evidently available for deeper analysis |
-| BM25 only | Missed semantic similarity | FAISS dense + BM25 sparse → RRF → cross-encoder rerank |
+| BM25 only | Missed semantic similarity | FAISS dense retrieval → cross-encoder rerank |
 
 ---
 
@@ -60,10 +60,8 @@ This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and 
 User Query
     │
     ▼
-HybridRetriever
-    ├── BM25 sparse search  ─┐
-    │                        ├── RRF merge → CrossEncoder rerank → top-4 chunks
-    └── FAISS dense search  ─┘
+DenseRetriever
+    └── FAISS dense search → CrossEncoder rerank → top-4 chunks
     │
     ▼
 VLLMClient  (Mistral-7B-Instruct via vLLM)
@@ -99,12 +97,12 @@ On Outerbounds (production):
 vllm-clinical-rag/
 ├── src/
 │   ├── api.py              # FastAPI /query + /health endpoints
-│   ├── retriever.py        # Hybrid BM25 + FAISS + RRF + cross-encoder
+│   ├── retriever.py        # FAISS dense retrieval + cross-encoder reranking
 │   ├── vllm_client.py      # vLLM HTTP client + prompt builder (uses requests)
 │   └── gradio_app.py       # Gradio demo UI
 ├── scripts/
 │   ├── scraper.py          # Merck Manual web scraper (robots.txt compliant)
-│   ├── build_index.py      # Builds FAISS + BM25 indexes from scraped text
+│   ├── build_index.py      # Builds FAISS index + chunk metadata from scraped text
 │   └── start_vllm.sh       # Helper to launch local vLLM server
 ├── eval/
 │   └── run_eval.py         # Heuristic evaluation harness (5 benchmark queries)
@@ -112,7 +110,7 @@ vllm-clinical-rag/
 │   └── demo.ipynb          # End-to-end walkthrough notebook
 ├── data/
 │   ├── raw/                # Scraped .txt files (git-ignored; reproduce via scraper)
-│   └── index/              # FAISS + BM25 indexes (git-ignored; reproduce via build_index)
+│   └── index/              # FAISS index + chunk metadata (git-ignored; reproduce via build_index)
 ├── ob_app.py               # Outerbounds deployment app (ana ob deploy reads this)
 ├── Dockerfile              # CUDA base image for Outerbounds
 ├── environment.yml         # Conda env — GPU/Outerbounds; all packages from Anaconda main
@@ -244,7 +242,6 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 | **Evidently AI** | RAG evaluation and monitoring | Anaconda `main` (added Q1 2026) |
 | **sentence-transformers** | Text embeddings + cross-encoder reranking | Anaconda `main` |
 | **FastAPI** | Production REST API | Anaconda `main` |
-| **rank-bm25** | Sparse keyword search | Anaconda `main` |
 
 ---
 
@@ -266,6 +263,7 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 - [Anaconda CLI](https://anaconda.sh)
 - [Merck Manual Professional Edition](https://www.merckmanuals.com/professional)
 - [Evidently AI docs](https://docs.evidentlyai.com)
+- [MCP + conda + Claude Desktop tutorial](https://github.com/dbouquin/mcp_conda_claude_tutorial) — Daina Bouquin's hands-on intro to building MCP servers with Python and conda (NYT Books API example)
 
 ---
 

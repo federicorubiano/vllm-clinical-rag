@@ -1,6 +1,6 @@
 name: vllm-clinical-rag
 channels:
-  - main         # all packages — faiss-gpu, sentence-transformers, gradio, evidently, rank-bm25
+  - main         # all packages — faiss-gpu, sentence-transformers, gradio, evidently
   - defaults
   # vllm GPU is pip-only until the conda GPU build ships (see pip section below)
 
@@ -15,7 +15,6 @@ dependencies:
   # ── Embeddings & retrieval ─────────────────────────────────────────────────
   - sentence-transformers
   - faiss-gpu          # Anaconda main (linux-64) — requires NVIDIA GPU
-  - rank-bm25
 
   # ── API layer ──────────────────────────────────────────────────────────────
   - fastapi

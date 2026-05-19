@@ -1,10 +1,10 @@
-name: vllm-clinical-rag-local
+name: vllm-rag
 # ─────────────────────────────────────────────────────────────────────────────
 # LOCAL / MAC DEVELOPMENT ENVIRONMENT
 # Use this on any machine without an NVIDIA GPU (MacBook, CI, etc.)
 #
 #   conda env create -f environment-local.yml
-#   conda activate vllm-clinical-rag-local
+#   conda activate vllm-rag
 #
 # Differences from environment.yml (GPU/Outerbounds):
 #   - faiss-cpu  instead of  faiss-gpu
@@ -12,13 +12,13 @@ name: vllm-clinical-rag-local
 #
 # What you CAN do locally with this env:
 #   ✅  python scripts/scraper.py       — scrape Merck Manual
-#   ✅  python scripts/build_index.py   — build FAISS + BM25 indexes
+#   ✅  python scripts/build_index.py   — build FAISS index
 #   ✅  python test_api.py --url <endpoint>  — test a remote API
 #   ✅  python eval/run_eval.py --api-url <endpoint>
 #   ❌  bash scripts/start_vllm.sh      — needs GPU (use ana ob deploy)
 # ─────────────────────────────────────────────────────────────────────────────
 channels:
-  - main         # all packages — faiss-cpu, sentence-transformers, gradio, evidently, rank-bm25
+  - main         # all packages — faiss-cpu, sentence-transformers, gradio, evidently
   - defaults
 
 dependencies:
@@ -32,7 +32,6 @@ dependencies:
   # ── Embeddings & retrieval ─────────────────────────────────────────────────
   - sentence-transformers
   - faiss-cpu          # CPU fallback — works on Mac/Linux without NVIDIA GPU
-  - rank-bm25
 
   # ── API layer ──────────────────────────────────────────────────────────────
   - fastapi
