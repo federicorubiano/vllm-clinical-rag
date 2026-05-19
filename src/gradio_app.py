@@ -5,9 +5,6 @@ Gradio demo UI for the Clinical Knowledge API.
 Calls the FastAPI /query endpoint and renders answers with citations.
 
 Start (after the API is running):
-    gradio src/gradio_app.py
-
-Or directly:
     python src/gradio_app.py
 """
 
@@ -32,7 +29,13 @@ DESCRIPTION = """
 Answers clinical queries grounded in the **Merck Manual Professional Edition**.
 Every response includes source citations and a mandatory medical disclaimer.
 
-> ⚠️ For educational and demonstration purposes only. Not medical advice.
+> ## ⚠️ MEDICAL DISCLAIMER
+>
+> **This demo is for educational and demonstration purposes only.**
+>
+> Nothing produced by this system — including all generated text, citations, and clinical summaries — constitutes medical advice, diagnosis, or treatment. The system may produce inaccurate, incomplete, or outdated information even when citing real sources.
+>
+> **Always consult a qualified, licensed healthcare professional before making any clinical decision.** Do not use this tool in any real patient care setting.
 """
 
 

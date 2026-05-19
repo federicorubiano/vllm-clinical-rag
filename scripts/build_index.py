@@ -11,6 +11,8 @@ Usage:
     python scripts/build_index.py
 
 Requires data/raw/ to be populated first (run scripts/scraper.py).
+
+All packages from Anaconda main channel — no pip dependencies.
 """
 
 import json
@@ -19,9 +21,9 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import tiktoken
 import faiss
 from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
@@ -35,9 +37,8 @@ CHUNKS_PATH   = INDEX_DIR / "chunks.json"
 MANIFEST_PATH = RAW_DIR / "manifest.json"
 
 EMBEDDING_MODEL  = "thenlper/gte-large"
-CHUNK_SIZE       = 800   # tokens
-CHUNK_OVERLAP    = 100   # tokens — enough to keep clinical concepts intact
-ENCODING         = "cl100k_base"
+CHUNK_SIZE       = 400   # tokens — stays within gte-large's 512-token limit
+CHUNK_OVERLAP    = 50    # tokens — enough to keep clinical concepts intact
 BATCH_SIZE       = 32    # embedding batch size
 
 logging.basicConfig(
@@ -49,33 +50,33 @@ log = logging.getLogger(__name__)
 
 # ── Chunking ─────────────────────────────────────────────────────────────────
 
-def chunk_text(text: str, slug: str, section: str, url: str) -> list[dict]:
+def chunk_text(text: str, slug: str, section: str, url: str, tokenizer) -> list[dict]:
     """
-    Split text into overlapping token-bounded chunks.
+    Split text into overlapping token-bounded chunks using the embedding
+    model's own tokenizer (from transformers, via sentence-transformers).
     Returns list of chunk dicts with text + metadata.
     """
-    enc = tiktoken.get_encoding(ENCODING)
-    tokens = enc.encode(text)
+    token_ids = tokenizer.encode(text, add_special_tokens=False)
 
     chunks = []
     start = 0
     chunk_idx = 0
 
-    while start < len(tokens):
-        end = min(start + CHUNK_SIZE, len(tokens))
-        chunk_tokens = tokens[start:end]
-        chunk_text = enc.decode(chunk_tokens).strip()
+    while start < len(token_ids):
+        end = min(start + CHUNK_SIZE, len(token_ids))
+        chunk_ids = token_ids[start:end]
+        chunk_str = tokenizer.decode(chunk_ids, skip_special_tokens=True).strip()
 
         # Skip near-empty chunks
-        if len(chunk_text) > 50:
+        if len(chunk_str) > 50:
             chunks.append({
-                "chunk_id": f"{slug}_{chunk_idx:04d}",
-                "slug": slug,
-                "section": section,
-                "url": url,
-                "chunk_idx": chunk_idx,
-                "text": chunk_text,
-                "token_count": len(chunk_tokens),
+                "chunk_id":    f"{slug}_{chunk_idx:04d}",
+                "slug":        slug,
+                "section":     section,
+                "url":         url,
+                "chunk_idx":   chunk_idx,
+                "text":        chunk_str,
+                "token_count": len(chunk_ids),
             })
             chunk_idx += 1
 
@@ -126,6 +127,10 @@ def main():
 
     log.info(f"Found {len(raw_files)} raw topic files.")
 
+    # ── Load tokenizer (same model used for embeddings) ───────────────────────
+    log.info(f"Loading tokenizer: {EMBEDDING_MODEL}")
+    tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
+
     # ── Chunking ─────────────────────────────────────────────────────────────
     all_chunks = []
 
@@ -136,7 +141,7 @@ def main():
         url = meta.get("url", "")
 
         text = path.read_text(encoding="utf-8")
-        chunks = chunk_text(text, slug, section, url)
+        chunks = chunk_text(text, slug, section, url, tokenizer)
         all_chunks.extend(chunks)
         log.info(f"  {slug}: {len(chunks)} chunks")
 

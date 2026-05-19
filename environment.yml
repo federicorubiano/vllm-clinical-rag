@@ -1,9 +1,8 @@
 name: vllm-clinical-rag
 channels:
-  - main         # faiss-cpu, sentence-transformers, gradio, rank-bm25
+  - main         # all packages — faiss-gpu, sentence-transformers, gradio, evidently, rank-bm25
   - defaults
-  # main-x: not required — none of the demo packages are gated behind it
-  # vllm is pip-only (see pip section below)
+  # vllm GPU is pip-only until the conda GPU build ships (see pip section below)
 
 dependencies:
   - python=3.11
@@ -12,17 +11,22 @@ dependencies:
   - requests
   - beautifulsoup4
   - lxml
-  - tiktoken
 
   # ── Embeddings & retrieval ─────────────────────────────────────────────────
   - sentence-transformers
-  - faiss-gpu          # High-value package from Anaconda main-x — requires NVIDIA GPU
+  - faiss-gpu          # Anaconda main (linux-64) — requires NVIDIA GPU
   - rank-bm25
 
   # ── API layer ──────────────────────────────────────────────────────────────
   - fastapi
   - "uvicorn[standard]"
   - pydantic
+
+  # ── Demo UI ────────────────────────────────────────────────────────────────
+  - gradio             # Anaconda main
+
+  # ── Evaluation & monitoring ────────────────────────────────────────────────
+  - evidently          # Anaconda main (added Q1 2026) — RAG evaluation + monitoring
 
   # ── Dev tooling ───────────────────────────────────────────────────────────
   - jupyter
@@ -36,6 +40,3 @@ dependencies:
   # by build platform issues. Using pip for GPU until conda package is ready.
   - pip:
     - vllm               # GPU version: pip fallback until conda GPU build ships
-    - evidently          # RAG evaluation + monitoring
-    - openai             # OpenAI-compatible client for vLLM
-    - mcp                # MCP server protocol

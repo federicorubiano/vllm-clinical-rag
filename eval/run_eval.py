@@ -2,13 +2,17 @@
 eval/run_eval.py
 ----------------
 Evaluation harness for the Clinical Knowledge API.
-Scores all 5 benchmark queries on three dimensions using Evidently AI:
+Scores all 5 benchmark queries across five dimensions:
   - Groundedness   : Does the answer stay within the retrieved context?
   - Relevance      : Does the answer address the question asked?
   - Citation Rate  : Fraction of responses that include at least one citation
+  - Disclaimer     : Is the mandatory medical disclaimer present?
+  - Structure      : Is the response well-formatted with headings/steps?
 
 V1 failure mode addressed: self-judging (Mistral scoring its own outputs)
-V2 fix: Evidently AI descriptors + lightweight BERTScore cross-check
+V2 fix: custom heuristic scoring — no LLM-as-judge, fully reproducible
+
+All packages used are available on Anaconda main channel.
 
 Usage:
     # API must be running first:
@@ -17,10 +21,11 @@ Usage:
     # Run evaluation:
     python eval/run_eval.py
     python eval/run_eval.py --api-url http://localhost:8000 --output eval/results.json
+    python eval/run_eval.py --report   # also generates eval/report.html
 
 Output:
     eval/results.json     — per-query scores + aggregate metrics
-    eval/report.html      — Evidently HTML report (open in browser)
+    eval/report.html      — HTML report (open in browser)
 """
 
 import argparse
@@ -159,52 +164,82 @@ def score_relevance_heuristic(question: str, answer: str, expected_sections: lis
     return round((keyword_overlap + section_score) / 2, 3)
 
 
-# ── Evidently integration ─────────────────────────────────────────────────────
+# ── HTML report ───────────────────────────────────────────────────────────────
 
-def run_evidently_report(results: list[dict], output_dir: Path) -> str | None:
+def run_html_report(results: list[dict], output_dir: Path) -> str | None:
     """
-    Build an Evidently TextEvals report over the query results.
-    Returns the path to the HTML report, or None if Evidently is not installed.
+    Generate a self-contained HTML evaluation report using only pandas
+    (Anaconda main channel). No external dependencies required.
     """
-    try:
-        import pandas as pd
-        from evidently import ColumnMapping
-        from evidently.metrics import (
-            ColumnSummaryMetric,
-        )
-        from evidently.report import Report
-        from evidently.metric_preset import TextOverviewPreset
-    except ImportError:
-        log.warning("Evidently not installed — skipping HTML report. Run: conda install evidently")
-        return None
+    import pandas as pd
 
     rows = []
     for r in results:
         rows.append({
-            "question":        r["question"],
-            "answer":          r["answer"],
-            "groundedness":    r["scores"]["groundedness"],
-            "relevance":       r["scores"]["relevance"],
-            "citation_rate":   r["scores"]["citation_rate"],
-            "disclaimer":      r["scores"]["disclaimer_present"],
-            "latency_ms":      r["latency_ms"],
+            "Query":          r["question"][:80] + ("…" if len(r["question"]) > 80 else ""),
+            "Groundedness":   r["scores"]["groundedness"],
+            "Relevance":      r["scores"]["relevance"],
+            "Citation Rate":  r["scores"]["citation_rate"],
+            "Disclaimer":     r["scores"]["disclaimer_present"],
+            "Structure":      r["scores"]["structure"],
+            "Overall":        r["scores"]["overall"],
+            "Latency (ms)":   r["latency_ms"],
         })
 
     df = pd.DataFrame(rows)
 
-    report = Report(metrics=[
-        ColumnSummaryMetric(column_name="groundedness"),
-        ColumnSummaryMetric(column_name="relevance"),
-        ColumnSummaryMetric(column_name="citation_rate"),
-        ColumnSummaryMetric(column_name="disclaimer"),
-        ColumnSummaryMetric(column_name="latency_ms"),
-    ])
+    def bar(val: float) -> str:
+        filled = int(val * 10)
+        return "█" * filled + "░" * (10 - filled)
 
-    report.run(reference_data=None, current_data=df)
+    rows_html = ""
+    for _, row in df.iterrows():
+        rows_html += "<tr>" + "".join(
+            f"<td>{v:.2f} {bar(v)}</td>" if isinstance(v, float) and k != "Latency (ms)"
+            else f"<td>{v}</td>"
+            for k, v in row.items()
+        ) + "</tr>\n"
+
+    agg = df.select_dtypes(include="number").mean().round(3)
+    agg_html = "<tr><td><strong>Average</strong></td>" + "".join(
+        f"<td><strong>{v:.2f} {bar(v)}</strong></td>" if k != "Latency (ms)"
+        else f"<td><strong>{v:.0f}</strong></td>"
+        for k, v in agg.items()
+    ) + "</tr>"
+
+    headers = "".join(f"<th>{c}</th>" for c in df.columns)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clinical RAG — Evaluation Report</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 20px; color: #222; }}
+    h1 {{ font-size: 1.4rem; margin-bottom: 4px; }}
+    p.meta {{ color: #666; font-size: 0.85rem; margin-bottom: 24px; }}
+    table {{ border-collapse: collapse; width: 100%; font-size: 0.85rem; }}
+    th {{ background: #f0f0f0; padding: 8px 12px; text-align: left; border-bottom: 2px solid #ccc; }}
+    td {{ padding: 8px 12px; border-bottom: 1px solid #eee; }}
+    tr:last-child td {{ border-bottom: 2px solid #ccc; font-weight: bold; background: #fafafa; }}
+  </style>
+</head>
+<body>
+  <h1>🏥 Clinical Knowledge RAG — Evaluation Report</h1>
+  <p class="meta">Generated {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} · {len(rows)} queries · All packages from Anaconda main channel</p>
+  <table>
+    <thead><tr>{headers}</tr></thead>
+    <tbody>{rows_html}{agg_html}</tbody>
+  </table>
+  <p style="margin-top:24px;font-size:0.8rem;color:#999;">
+    ⚠️ For educational and demonstration purposes only. Nothing in this report constitutes medical advice.
+  </p>
+</body>
+</html>"""
 
     report_path = output_dir / "report.html"
-    report.save_html(str(report_path))
-    log.info(f"Evidently report saved → {report_path}")
+    report_path.write_text(html)
+    log.info(f"Report saved → {report_path}")
     return str(report_path)
 
 
@@ -351,7 +386,7 @@ def main():
     parser.add_argument(
         "--report",
         action="store_true",
-        help="Generate Evidently HTML report (requires: conda install evidently)",
+        help="Generate HTML evaluation report (pandas only — no extra dependencies)",
     )
     args = parser.parse_args()
 
@@ -359,7 +394,7 @@ def main():
     eval_output = run_evaluation(args.api_url, output_path)
 
     if args.report:
-        run_evidently_report(eval_output["results"], output_path.parent)
+        run_html_report(eval_output["results"], output_path.parent)
 
 
 if __name__ == "__main__":

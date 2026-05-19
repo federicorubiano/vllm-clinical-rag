@@ -19,8 +19,6 @@ The deployed service exposes:
 
 Once deployed, copy the endpoint URL into your .env:
     API_URL=https://<your-outerbounds-endpoint>
-
-Then point Claude Desktop's MCP server at the same URL via VLLM_BASE_URL.
 """
 
 import subprocess

@@ -7,6 +7,9 @@ A production RAG system that answers clinical questions grounded in the **Merck 
 This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and tells a complete **"first install to production"** story:
 `ana login` → `conda env create` → `ana ob deploy`
 
+![Gradio UI screenshot](screenshots/gradio-ui.png)
+<!-- TODO: run `python src/gradio_app.py`, open http://localhost:7860, ask a benchmark query, save to screenshots/gradio-ui.png -->
+
 ---
 
 > ## ⚠️ MEDICAL DISCLAIMER
@@ -33,6 +36,10 @@ This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and 
 
 [Outerbounds](https://outerbounds.com) is a production ML platform built on Metaflow, now part of Anaconda. It provides GPU-backed Kubernetes infrastructure so you can deploy the same code that runs locally straight to production — without rewriting anything. `ana ob deploy` is the single command that takes this project from laptop to live endpoint.
 
+## What is Evidently AI?
+
+[Evidently AI](https://www.evidentlyai.com) is an open-source library for evaluating and monitoring ML models and LLM pipelines. In this demo it is available as a conda dependency from the Anaconda `main` channel (added Q1 2026) — no pip required. The evaluation harness uses custom heuristic scoring for full reproducibility (no LLM-as-judge); Evidently's richer metrics are available for deeper analysis.
+
 ---
 
 ## V1 → V2: What changed and why
@@ -42,7 +49,7 @@ This demo fills the vLLM gap in Anaconda's high-value AI packages portfolio and 
 | Hallucinated citations | LLM invented sources | Retrieved chunk metadata enforced in response schema |
 | Outdated corpus | Watermarked PDF, no update path | Live scraper targeting merckmanuals.com |
 | Single-threaded inference | llama-cpp; no concurrency | vLLM with PagedAttention + continuous batching |
-| Self-judging evaluation | Mistral scored its own output | Evidently AI + heuristic cross-check |
+| Self-judging evaluation | Mistral scored its own output | Custom heuristic scoring — no LLM-as-judge, fully reproducible; Evidently available for deeper analysis |
 | BM25 only | Missed semantic similarity | FAISS dense + BM25 sparse → RRF → cross-encoder rerank |
 
 ---
@@ -65,8 +72,7 @@ VLLMClient  (Mistral-7B-Instruct via vLLM)
     ▼
 Answer + Citations + Medical Disclaimer  [appended to every response]
     │
-    ├── FastAPI  /query  →  Gradio UI  →  Browser
-    └── MCP server       →  Claude Desktop
+    └── FastAPI  /query  →  Gradio UI  →  Browser
 
 On Outerbounds (production):
     [Kubernetes GPU pod]
@@ -94,15 +100,14 @@ vllm-clinical-rag/
 ├── src/
 │   ├── api.py              # FastAPI /query + /health endpoints
 │   ├── retriever.py        # Hybrid BM25 + FAISS + RRF + cross-encoder
-│   ├── vllm_client.py      # OpenAI-compatible vLLM client + prompt builder
-│   ├── gradio_app.py       # Gradio demo UI
-│   └── mcp_server.py       # MCP server for Claude Desktop
+│   ├── vllm_client.py      # vLLM HTTP client + prompt builder (uses requests)
+│   └── gradio_app.py       # Gradio demo UI
 ├── scripts/
 │   ├── scraper.py          # Merck Manual web scraper (robots.txt compliant)
 │   ├── build_index.py      # Builds FAISS + BM25 indexes from scraped text
 │   └── start_vllm.sh       # Helper to launch local vLLM server
 ├── eval/
-│   └── run_eval.py         # Evidently AI evaluation harness (5 benchmark queries)
+│   └── run_eval.py         # Heuristic evaluation harness (5 benchmark queries)
 ├── notebooks/
 │   └── demo.ipynb          # End-to-end walkthrough notebook
 ├── data/
@@ -128,7 +133,7 @@ vllm-clinical-rag/
 ana login
 ```
 
-`faiss-cpu`, `sentence-transformers`, `gradio`, and `vllm` (CPU) are all on the Anaconda `main` channel. The GPU build of `vllm` is in progress — until it ships, the GPU environment installs it via pip automatically in the next step.
+`faiss-cpu`, `sentence-transformers`, `gradio`, and `vllm` (CPU) are all on the Anaconda `main` channel. The GPU build of `vllm` is in progress. The environment files handle all package installation — no manual pip commands needed.
 
 ### Step 2: Create the environment
 
@@ -184,7 +189,7 @@ python test_api.py
 
 You should see green checkmarks for health, query, and citation checks.
 
-### Step 8: (Optional) Deploy to Outerbounds
+### Step 8: Deploy to Outerbounds (required for GPU inference)
 
 ```bash
 ana ob init       # first time only — registers the project
@@ -199,32 +204,6 @@ ana ob deploy     # push to production GPU endpoint
 python src/gradio_app.py
 # Open http://localhost:7860
 ```
-
-### Step 10: (Optional) Connect to Claude Desktop
-
-Run `ana mcp setup` or add manually to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "merck-manual-rag": {
-      "command": "/path/to/envs/vllm-clinical-rag/bin/python",
-      "args": ["-m", "src.mcp_server"],
-      "cwd": "/path/to/vllm-clinical-rag",
-      "env": { "PYTHONPATH": "/path/to/vllm-clinical-rag" }
-    }
-  }
-}
-```
-
-Get your paths:
-```bash
-conda activate vllm-clinical-rag
-which python   # → use as "command"
-pwd            # → use as "cwd" and "PYTHONPATH"
-```
-
-Then restart Claude Desktop and ask: *"What is the first-line treatment for septic shock?"*
 
 ---
 
@@ -242,7 +221,7 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 ## Troubleshooting
 
 **`vllm` not found after `conda env create` on Mac**
-→ Expected — vLLM has no osx-arm64 conda build. The GPU environment installs it via pip automatically. If pip install also fails, you're on Apple Silicon without NVIDIA — use `ana ob deploy` for inference.
+→ Expected — vLLM has no osx-arm64 conda build. Use `environment-local.yml` which omits vllm, then deploy to Outerbounds for GPU inference via `ana ob deploy`.
 
 **`ana ob deploy` says authorization required**
 → Run `ana ob configure <token>` first. Get your token from your Outerbounds admin.
@@ -253,14 +232,6 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 **vLLM OOM (out of memory)**
 → Try a smaller model: `--model mistralai/Mistral-3B-Instruct` or reduce `--gpu-memory-utilization 0.80`.
 
-**MCP server not showing in Claude Desktop**
-→ Fully quit Claude Desktop (⌘Q), not just close the window. Then reopen.
-
-Check MCP logs:
-```bash
-tail -f ~/Library/Logs/Claude/mcp*.log
-```
-
 ---
 
 ## High-value packages showcased
@@ -268,9 +239,9 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 | Package | Role | Source |
 |---|---|---|
 | **vLLM** | Production LLM inference — PagedAttention, concurrent batching | Anaconda `main` (linux-64); GPU build in progress |
-| **FAISS** | Vector similarity search — CPU via conda, GPU via Outerbounds | Anaconda `main` (faiss-cpu) |
+| **FAISS** | Vector similarity search — CPU locally, GPU on Outerbounds | Anaconda `main` (faiss-cpu + faiss-gpu) |
 | **Gradio** | Interactive demo UI | Anaconda `main` |
-| **Evidently AI** | RAG evaluation and monitoring | pip |
+| **Evidently AI** | RAG evaluation and monitoring | Anaconda `main` (added Q1 2026) |
 | **sentence-transformers** | Text embeddings + cross-encoder reranking | Anaconda `main` |
 | **FastAPI** | Production REST API | Anaconda `main` |
 | **rank-bm25** | Sparse keyword search | Anaconda `main` |
@@ -280,7 +251,7 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 ## What's next
 
 - **Streaming responses** — vLLM supports SSE; wire through FastAPI + Gradio
-- **Multi-turn conversation** — maintain chat history in the MCP server
+- **Multi-turn conversation** — maintain chat history in the Gradio UI
 - **More Merck topics** — the scraper supports any URL; expand the topic list
 - **RAGAS evaluation** — swap in RAGAS for more rigorous RAG-specific metrics
 - **Fine-tuned reranker** — train a domain-specific cross-encoder on medical QA pairs
@@ -293,7 +264,6 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 - [FAISS wiki](https://github.com/facebookresearch/faiss/wiki)
 - [Outerbounds documentation](https://docs.outerbounds.com)
 - [Anaconda CLI](https://anaconda.sh)
-- [MCP documentation](https://docs.anthropic.com/en/docs/mcp)
 - [Merck Manual Professional Edition](https://www.merckmanuals.com/professional)
 - [Evidently AI docs](https://docs.evidentlyai.com)
 

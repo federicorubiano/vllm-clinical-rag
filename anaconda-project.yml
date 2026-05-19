@@ -18,8 +18,8 @@ commands:
     description: "Start the vLLM-backed Clinical Knowledge API"
 
   demo:
-    unix: gradio src/gradio_app.py
-    description: "Launch the Gradio demo UI"
+    unix: python src/gradio_app.py
+    description: "Launch the Gradio demo UI at http://localhost:7860"
 
   evaluate:
     unix: python eval/run_eval.py
@@ -32,7 +32,7 @@ variables:
     default: "mistralai/Mistral-7B-Instruct-v0.3"
 
   VLLM_BASE_URL:
-    description: "vLLM OpenAI-compatible server URL"
+    description: "vLLM inference server URL"
     default: "http://localhost:8001/v1"
 
   EMBEDDING_MODEL:

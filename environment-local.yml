@@ -18,7 +18,7 @@ name: vllm-clinical-rag-local
 #   ❌  bash scripts/start_vllm.sh      — needs GPU (use ana ob deploy)
 # ─────────────────────────────────────────────────────────────────────────────
 channels:
-  - main         # faiss-cpu, sentence-transformers, gradio all live here
+  - main         # all packages — faiss-cpu, sentence-transformers, gradio, evidently, rank-bm25
   - defaults
 
 dependencies:
@@ -28,7 +28,6 @@ dependencies:
   - requests
   - beautifulsoup4
   - lxml
-  - tiktoken
 
   # ── Embeddings & retrieval ─────────────────────────────────────────────────
   - sentence-transformers
@@ -40,6 +39,12 @@ dependencies:
   - "uvicorn[standard]"
   - pydantic
 
+  # ── Demo UI ────────────────────────────────────────────────────────────────
+  - gradio             # Anaconda main
+
+  # ── Evaluation & monitoring ────────────────────────────────────────────────
+  - evidently          # Anaconda main (added Q1 2026) — RAG evaluation + monitoring
+
   # ── Dev tooling ───────────────────────────────────────────────────────────
   - jupyter
   - ipykernel
@@ -47,10 +52,5 @@ dependencies:
   - tqdm
   - rich
 
-  # ── pip-only packages ──────────────────────────────────────────────────────
-  - pip:
-    - evidently          # RAG evaluation + monitoring
-    - gradio             # Demo UI
-    - openai             # OpenAI-compatible client (points to remote vLLM endpoint)
-    - mcp                # MCP server protocol
-    # vllm intentionally omitted — no GPU. Deploy with: ana ob deploy
+  # No pip dependencies — all packages from Anaconda main channel.
+  # vllm intentionally omitted — no GPU locally. Deploy with: ana ob deploy

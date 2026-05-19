@@ -2,7 +2,7 @@
 # =============================================================================
 # start_vllm.sh
 # -------------
-# Start a vLLM OpenAI-compatible inference server for the Clinical RAG demo.
+# Start a vLLM vLLM inference server for the Clinical RAG demo.
 #
 # Usage:
 #   bash scripts/start_vllm.sh                    # uses defaults from .env
@@ -81,12 +81,12 @@ echo ""
 if ! python -c "import vllm" 2>/dev/null; then
     echo "ERROR: vllm is not installed in the current environment."
     echo ""
-    echo "  To install via Anaconda CLI (main-x channel):"
-    echo "    ana feature enable main-x"
-    echo "    conda install vllm -c main-x"
-    echo ""
-    echo "  Or activate the project environment first:"
+    echo "  Activate the project environment first:"
     echo "    conda activate vllm-clinical-rag"
+    echo ""
+    echo "  vllm (CPU) is on Anaconda main channel. The GPU build is in"
+    echo "  progress — until it ships, the GPU version installs via pip"
+    echo "  as part of environment.yml (conda env create -f environment.yml)."
     exit 1
 fi
 
@@ -129,7 +129,7 @@ fi
 
 # ── Launch vLLM ───────────────────────────────────────────────────────────────
 echo "  Starting vLLM server..."
-echo "  OpenAI-compatible endpoint will be ready at:"
+echo "  vLLM endpoint will be ready at:"
 echo "    http://$HOST:$PORT/v1"
 echo ""
 echo "  Press Ctrl+C to stop."

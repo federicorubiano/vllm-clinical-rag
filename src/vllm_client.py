@@ -1,14 +1,15 @@
 """
 vllm_client.py
 --------------
-Thin wrapper around the vLLM OpenAI-compatible inference endpoint.
+Thin wrapper around the vLLM chat completions endpoint.
+Uses requests (Anaconda main) — no external API keys or third-party SDKs.
 Handles prompt construction, citation formatting, and the
 medical disclaimer appended to every response.
 """
 
 import os
 import logging
-from openai import OpenAI
+import requests
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ def build_user_prompt(question: str, chunks) -> str:
 
 class VLLMClient:
     """
-    OpenAI-compatible client pointing at a local vLLM server.
+    HTTP client pointing at a local or Outerbounds-hosted vLLM server.
+    Calls the /v1/chat/completions endpoint directly using requests.
 
     Parameters
     ----------
@@ -67,11 +69,8 @@ class VLLMClient:
         base_url: str | None = None,
         model: str | None = None,
     ):
-        self.base_url = base_url or os.getenv("VLLM_BASE_URL", "http://localhost:8001/v1")
-        self.model    = model    or os.getenv("VLLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.3")
-
-        # vLLM doesn't require a real API key but the client needs a non-empty string
-        self.client = OpenAI(api_key="vllm-local", base_url=self.base_url)
+        self.base_url = (base_url or os.getenv("VLLM_BASE_URL", "http://localhost:8001/v1")).rstrip("/")
+        self.model    = model or os.getenv("VLLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.3")
         log.info(f"vLLM client → {self.base_url} | model: {self.model}")
 
     def generate(
@@ -94,36 +93,48 @@ class VLLMClient:
         """
         user_message = build_user_prompt(question, chunks)
 
+        payload = {
+            "model":       self.model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": user_message},
+            ],
+            "max_tokens":  max_tokens,
+            "temperature": temperature,
+            "top_p":       0.9,
+        }
+
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": user_message},
-                ],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=0.9,
+            resp = requests.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                timeout=120,
             )
+            resp.raise_for_status()
+            data = resp.json()
+        except requests.exceptions.ConnectionError:
+            log.error(f"Cannot reach vLLM at {self.base_url}. Is the server running?")
+            raise
         except Exception as e:
             log.error(f"vLLM inference error: {e}")
             raise
 
-        answer_text = response.choices[0].message.content.strip()
+        answer_text          = data["choices"][0]["message"]["content"].strip()
         answer_with_disclaimer = answer_text + DISCLAIMER
 
+        usage = data.get("usage", {})
         sources = [
             {"slug": c.slug, "section": c.section, "url": c.url}
             for c in chunks
         ]
 
         return {
-            "answer": answer_with_disclaimer,
+            "answer":  answer_with_disclaimer,
             "sources": sources,
-            "model": self.model,
+            "model":   self.model,
             "usage": {
-                "prompt_tokens":     response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens":      response.usage.total_tokens,
+                "prompt_tokens":     usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+                "total_tokens":      usage.get("total_tokens", 0),
             },
         }
