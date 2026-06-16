@@ -34,7 +34,7 @@ Every model weight enters through Anaconda's curated catalog — auditable prove
 
 ## What is FAISS?
 
-[FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers semantic retrieval — finding chunks whose *meaning* matches the query, not just their keywords. A cross-encoder then reranks the top candidates for maximum relevance.
+[FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers semantic retrieval — finding chunks whose *meaning* matches the query, not just their keywords. Qwen3-Embedding-4B's instruction-following embeddings handle query/document asymmetry natively, so no separate reranking step is needed.
 
 ## What is Anaconda Platform AI Orchestration?
 
@@ -54,7 +54,7 @@ Every model weight enters through Anaconda's curated catalog — auditable prove
 | Outdated corpus | Watermarked PDF, no update path | Live scraper targeting merckmanuals.com |
 | Single-threaded inference | llama-cpp; no concurrency | vLLM with PagedAttention + continuous batching |
 | Self-judging evaluation | Mistral scored its own output | Custom heuristic scoring — no LLM-as-judge, fully reproducible; Evidently available for deeper analysis |
-| BM25 only | Missed semantic similarity | FAISS dense retrieval → cross-encoder rerank |
+| BM25 only | Missed semantic similarity | FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings — no separate reranker needed |
 | Dependency on external APIs | Reddit V2 roadmap asked about migrating to hosted models (Claude/OpenAI API) | V2 went the opposite direction: fully self-hosted vLLM — no external API calls, data never leaves your infrastructure |
 
 ---
@@ -110,8 +110,8 @@ On Anaconda Platform (production):
 vllm-clinical-rag/
 ├── src/
 │   ├── api.py              # FastAPI /query + /health endpoints
-│   ├── retriever.py        # FAISS dense retrieval + cross-encoder reranking
-│   ├── vllm_client.py      # vLLM HTTP client + prompt builder (uses requests)
+│   ├── retriever.py        # FAISS dense retrieval (instruction-following embeddings, no reranker)
+│   ├── vllm_client.py      # Anaconda Desktop chat client + prompt builder (uses requests)
 │   └── gradio_app.py       # Gradio demo UI
 ├── scripts/
 │   ├── scraper.py          # Merck Manual web scraper (robots.txt compliant)
@@ -164,14 +164,14 @@ conda activate vllm-rag
 
 ```bash
 cp .env.example .env
-# Edit .env — set VLLM_MODEL and any overrides
+# Edit .env — set INFERENCE_MODEL / EMBEDDING_MODEL to match your Desktop servers
 ```
 
 ### Step 4: Scrape the Merck Manual and build indexes
 
 ```bash
 python scripts/scraper.py      # ~5 min — respects robots.txt 5s crawl delay
-python scripts/build_index.py  # ~10 min — embeds all chunks with gte-large
+python scripts/build_index.py  # ~10 min — embeds all chunks with Qwen3-Embedding-4B
 ```
 
 This writes to `data/raw/` and `data/index/`. No corpus file to download — anyone can reproduce it.
