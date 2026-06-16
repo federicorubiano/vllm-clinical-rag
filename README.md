@@ -2,14 +2,30 @@
 
 > **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Last tested:** 2026-05-18 | **Status:** Active | **Estimated time:** 60–90 minutes
 
-A production RAG system that answers clinical questions grounded in the **Merck Manual Professional Edition** — built on Anaconda's trusted foundation for AI-native development.
+A hands-on **guide**: build your own clinical-question RAG system, step by step, grounded in the **Merck Manual Professional Edition** — entirely on Anaconda's secure-by-default stack. By the end you'll have a working, locally-served RAG you can extend.
 
-Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings, and deployed via Anaconda CLI + Anaconda Platform AI Orchestration.
+Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings, and an optional production path via Anaconda CLI + Anaconda Platform AI Orchestration.
 
 > *"If you can't reproduce it, you can't trust it. If you can't trust it, you can't ship it."*
 
 Every model weight enters through Anaconda's curated catalog — auditable provenance from install to inference, zero HuggingFace Hub calls at runtime. This is what **secure by default** looks like end to end:
-`ana login` → `conda env create` → open Anaconda Desktop → `ana ob deploy`
+`ana login` → `conda env create` → open Anaconda Desktop → run locally → *(optional)* `ana ob deploy`
+
+## Audience
+
+Python developers and data scientists who want to build a retrieval-augmented generation (RAG) system end to end using only Anaconda's curated, secure-by-default stack. No prior RAG experience required. The techniques apply to any domain that needs grounded, citable answers over a document corpus — demonstrated here on a clinical/healthcare knowledge base.
+
+## What you'll learn
+
+By the end of this guide you will be able to:
+
+1. **Build** a FAISS dense-vector index from a scraped corpus using Anaconda Desktop's local embedding server — no GPU, no HuggingFace Hub.
+2. **Retrieve** the most relevant passages for a question with instruction-following embeddings.
+3. **Generate** grounded, citation-enforced answers from a locally-served Qwen3-8B model.
+4. **Serve** the pipeline as a FastAPI endpoint.
+5. **Evaluate** answer quality with a reproducible scoring harness.
+
+*Optional capstone:* deploy the same code to a GPU endpoint on Anaconda Platform AI Orchestration.
 
 ![Gradio UI screenshot](screenshots/gradio-ui.png)
 <!-- TODO: run `python src/gradio_app.py`, open http://localhost:7860, ask a benchmark query, save to screenshots/gradio-ui.png -->
@@ -94,13 +110,25 @@ On Anaconda Platform (production):
 
 ## Prerequisites
 
-- Anaconda or Miniconda installed
-- [Anaconda CLI (`ana`)](https://anaconda.sh) installed
-- [Anaconda Desktop](https://www.anaconda.com/products/desktop) installed and running — provides the local model server for both embeddings and inference
-- Python 3.11
-- An Anaconda Platform account (AI Orchestration, formerly Outerbounds) — required for GPU-backed production deployment
+**Knowledge prerequisites** (what you should already know — links fill the gaps):
+- Comfortable running Python from the command line and editing `.py` files.
+- Basic familiarity with conda environments ([conda environments guide](https://docs.conda.io/projects/conda/en/stable/user-guide/concepts/environments.html)).
+- A conceptual grasp of embeddings/vector search helps but isn't required ([what are embeddings?](https://www.anaconda.com/docs/tools/ai-navigator/tutorials/embedding-tutorial)). RAG itself is taught here from scratch.
 
-> **Mac users:** the full pipeline (scraping, indexing, API, and UI) runs locally on Apple Silicon via Anaconda Desktop. No GPU required for development. Anaconda Platform AI Orchestration is the production path.
+**Installation prerequisites** (what must be installed — with links):
+- [Anaconda or Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main)
+- [Anaconda CLI (`ana`)](https://anaconda.sh)
+- [Anaconda Desktop](https://www.anaconda.com/products/desktop) — provides the local model server for embeddings and inference
+- Python 3.11 (installed by the environment file)
+- ~24–32 GB RAM recommended to run Qwen3-8B locally
+- *(Optional, production only)* an [Anaconda Platform](https://www.anaconda.com/products/platform) account for AI Orchestration
+
+**External dependencies (classified):**
+- **Anaconda Desktop model server** — *Tier 3 (no fallback)*: required; serves both the embedding and inference models. This is the point of the secure-by-default story, so the dependency is intentional.
+- **Merck Manual website** (scraping step) — *Tier 2 (fallback available)*: a public source; if unreachable, substitute the small sample corpus in `data/raw/`.
+- **Anaconda Platform AI Orchestration** — *Tier 3 (no fallback)* but **optional** — only needed for the production-deployment section.
+
+> **Mac users:** the full local pipeline (scraping, indexing, API, and UI) runs on Apple Silicon via Anaconda Desktop. No GPU required for development. Anaconda Platform AI Orchestration is the optional production path.
 
 ---
 
@@ -136,13 +164,19 @@ vllm-clinical-rag/
 
 ---
 
-## Setup
+## Build it yourself (step by step)
+
+> Each step below opens with what you should already have working and ends with a **✅ Checkpoint** so you can verify success before moving on. You can stop after any checkpoint and still have learned something complete.
 
 ### Step 1: Login
+
+*Start state: Anaconda/Miniconda and the `ana` CLI installed (see Prerequisites).*
 
 ```bash
 ana login
 ```
+
+**✅ Checkpoint:** `ana whoami` prints your Anaconda username.
 
 `faiss-cpu`, `gradio`, `evidently`, `fastapi`, and all supporting packages are on the Anaconda `main` channel. The environment files handle all installation — no pip commands, no HuggingFace packages.
 
@@ -167,14 +201,26 @@ cp .env.example .env
 # Edit .env — set INFERENCE_MODEL / EMBEDDING_MODEL to match your Desktop servers
 ```
 
-### Step 4: Scrape the Merck Manual and build indexes
+### Step 4: Scrape the Merck Manual and build the index
+
+*Start state: your conda env is activated and `.env` is configured (Steps 2–3).*
 
 ```bash
 python scripts/scraper.py      # ~5 min — respects robots.txt 5s crawl delay
-python scripts/build_index.py  # ~10 min — embeds all chunks with Qwen3-Embedding-4B
+python scripts/build_index.py  # ~10 min — embeds all chunks via Anaconda Desktop
 ```
 
 This writes to `data/raw/` and `data/index/`. No corpus file to download — anyone can reproduce it.
+
+**✅ Checkpoint:** `data/index/merck.faiss` and `data/index/chunks.json` exist, and `build_index.py` prints a chunk count. Expected output (your numbers may vary):
+
+```text
+Scraped 7 topics → data/raw/
+Chunked + embedded 156 passages
+Wrote data/index/merck.faiss (156 vectors)
+```
+
+> ℹ️ The embedding server must be the one running in Anaconda Desktop for this step (see Step 5). If you hit an `exit code 133` crash, see **Known issues** below — keep `CHUNK_SIZE_WORDS` at 200.
 
 ### Step 5: Start model servers in Anaconda Desktop
 
@@ -187,19 +233,36 @@ Both will be available at `localhost:8080`. The `.env` file controls which model
 
 > **This replaces the old vLLM server step.** No GPU required locally. Model weights are downloaded once through Anaconda Desktop's curated catalog — no HuggingFace Hub calls at runtime.
 
+**✅ Checkpoint:** `curl http://localhost:8080/health` returns `{"status":"ok"}` (or the Desktop UI shows the server as **Running**).
+
+> ℹ️ Desktop currently serves one model at a time. Run the **embedding** model while building the index (Step 4), then switch to the **inference** model for Steps 6–9. See **Known issues** for why.
+
 ### Step 6: Start the API
+
+*Start state: the inference model server is running in Anaconda Desktop and the index exists.*
 
 ```bash
 uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+**✅ Checkpoint:** the log prints `API ready.` and `http://localhost:8000/docs` loads the Swagger UI.
+
 ### Step 7: Test your setup
+
+*Start state: the API is running (Step 6).*
 
 ```bash
 python test_api.py
 ```
 
-You should see green checkmarks for health, query, and citation checks.
+**✅ Checkpoint:** you see green checkmarks for health, query, and citation checks. Expected output:
+
+```text
+  ✅  health endpoint reachable
+  ✅  /query returns an answer
+  ✅  answer contains a CITATIONS section
+  ✅  medical disclaimer present
+```
 
 ### Step 8: Deploy to Anaconda Platform AI Orchestration (required for GPU inference)
 
@@ -301,6 +364,15 @@ anaconda sites list
 | **requests** | All model API calls (embeddings + chat completions) — no SDKs | Anaconda `main` |
 
 ---
+
+## Extension challenges (optional)
+
+Finished the build? Try one of these to make it your own — each is optional and open-ended:
+
+- **Add a topic.** Add a new Merck Manual URL to `scripts/scraper.py`, re-run scrape + `build_index.py`, and ask a question about it. Did retrieval surface your new content?
+- **Tune retrieval.** Change `TOP_K` in `.env` (try 3, then 8) and re-run the eval harness. How do groundedness and latency trade off?
+- **Swap the model.** Point `INFERENCE_MODEL` at a different chat model in your Anaconda Desktop catalog and compare answer quality on the 5 benchmark queries — no code changes required.
+- **Bring your own corpus.** Replace the Merck scraper with a different public dataset and adapt the chunking. The rest of the pipeline is domain-agnostic.
 
 ## What's next
 

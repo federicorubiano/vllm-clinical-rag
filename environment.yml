@@ -1,39 +1,45 @@
 name: vllm-clinical-rag
+# ─────────────────────────────────────────────────────────────────────────────
+# GPU / PRODUCTION ENVIRONMENT (Anaconda Platform AI Orchestration)
+# Versions pinned exactly against the Anaconda `main` channel (verified 2026-06).
+# For a deterministic, hash-locked build:
+#   conda-lock -f environment.yml -p linux-64
+# ─────────────────────────────────────────────────────────────────────────────
 channels:
-  - main         # all packages — faiss-gpu, gradio, evidently, fastapi
+  - main
   - defaults
 
 dependencies:
   - python=3.11
 
   # ── Data pipeline ──────────────────────────────────────────────────────────
-  - requests
-  - beautifulsoup4
-  - lxml
+  - requests==2.34.2
+  - beautifulsoup4==4.15.0
+  - lxml==6.1.0
 
   # ── Retrieval ──────────────────────────────────────────────────────────────
-  # sentence-transformers and transformers removed — embeddings served locally
-  # by Anaconda Desktop (Qwen3-Embedding-4B). No HuggingFace Hub calls.
-  - faiss-gpu          # Anaconda main (linux-64) — requires NVIDIA GPU
+  # sentence-transformers/transformers removed — embeddings served locally by
+  # Anaconda Desktop (Qwen3-Embedding-4B). No HuggingFace Hub calls.
+  - faiss-gpu==1.14.1          # Anaconda main — requires NVIDIA GPU
 
   # ── API layer ──────────────────────────────────────────────────────────────
-  - fastapi
-  - "uvicorn[standard]"
-  - pydantic
+  - fastapi==0.135.4
+  - uvicorn==0.40.0
+  - pydantic==2.13.4
 
   # ── Demo UI ────────────────────────────────────────────────────────────────
-  - gradio             # Anaconda main
+  - gradio==6.14.0
 
   # ── Evaluation & monitoring ────────────────────────────────────────────────
-  - evidently          # Anaconda main (added Q1 2026) — RAG evaluation + monitoring
+  - evidently==0.7.21          # Anaconda main — RAG evaluation + monitoring
 
-  # ── Dev tooling ───────────────────────────────────────────────────────────
-  - jupyter
-  - ipykernel
-  - python-dotenv
-  - tqdm
-  - rich
+  # ── Dev tooling ─────────────────────────────────────────────────────────────
+  - jupyter==1.1.1
+  - ipykernel==7.2.0
+  - python-dotenv==1.2.1
+  - tqdm==4.68.2
+  - rich==15.0.0
 
   # No pip dependencies. No HuggingFace packages.
-  # All model inference (embeddings + generation) goes through Anaconda Desktop
-  # at localhost:8080 — fully audited, supply-chain clean.
+  # All model inference (embeddings + generation) goes through Anaconda Desktop /
+  # Anaconda Platform at localhost:8080 — fully audited, supply-chain clean.

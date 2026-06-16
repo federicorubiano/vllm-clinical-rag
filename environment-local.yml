@@ -9,52 +9,48 @@ name: vllm-rag
 # Inference and embeddings are handled by Anaconda Desktop's local model server
 # (localhost:8080) — no GPU required in this environment, no HuggingFace Hub.
 #
-# What you CAN do locally with this env:
-#   ✅  python scripts/scraper.py           — scrape Merck Manual
-#   ✅  python scripts/build_index.py       — build FAISS index (via Desktop)
-#   ✅  uvicorn src.api:app --reload        — run the full API (via Desktop)
-#   ✅  python src/gradio_app.py            — launch demo UI
-#   ✅  python test_api.py                  — connectivity test
-#   ✅  python eval/run_eval.py             — run evaluation harness
+# Versions pinned exactly against the Anaconda `main` channel (verified 2026-06).
+# For a deterministic, hash-locked build:
+#   conda-lock -f environment-local.yml -p osx-arm64
 #
 # Prerequisites:
 #   - Anaconda Desktop installed and running
-#   - Qwen3-Embedding-4B loaded as model server in Desktop
-#   - Qwen3-8B loaded as model server in Desktop
+#   - Qwen3-Embedding-4B loaded as a model server in Desktop (for indexing)
+#   - Qwen3-8B loaded as a model server in Desktop (for inference)
 # ─────────────────────────────────────────────────────────────────────────────
 channels:
-  - main         # all packages — faiss-cpu, gradio, evidently
+  - main
   - defaults
 
 dependencies:
   - python=3.11
 
   # ── Data pipeline ──────────────────────────────────────────────────────────
-  - requests
-  - beautifulsoup4
-  - lxml
+  - requests==2.34.2
+  - beautifulsoup4==4.15.0
+  - lxml==6.1.0
 
   # ── Retrieval ──────────────────────────────────────────────────────────────
   # sentence-transformers removed — embeddings via Anaconda Desktop API
-  - faiss-cpu          # CPU build — works on Mac/Linux without NVIDIA GPU
+  - faiss-cpu==1.14.1          # CPU build — works on Mac/Linux without NVIDIA GPU
 
   # ── API layer ──────────────────────────────────────────────────────────────
-  - fastapi
-  - "uvicorn[standard]"
-  - pydantic
+  - fastapi==0.135.4
+  - uvicorn==0.40.0
+  - pydantic==2.13.4
 
   # ── Demo UI ────────────────────────────────────────────────────────────────
-  - gradio             # Anaconda main
+  - gradio==6.14.0
 
   # ── Evaluation & monitoring ────────────────────────────────────────────────
-  - evidently          # Anaconda main (added Q1 2026) — RAG evaluation + monitoring
+  - evidently==0.7.21          # Anaconda main — RAG evaluation + monitoring
 
-  # ── Dev tooling ───────────────────────────────────────────────────────────
-  - jupyter
-  - ipykernel
-  - python-dotenv
-  - tqdm
-  - rich
+  # ── Dev tooling ─────────────────────────────────────────────────────────────
+  - jupyter==1.1.1
+  - ipykernel==7.2.0
+  - python-dotenv==1.2.1
+  - tqdm==4.68.2
+  - rich==15.0.0
 
   # No pip dependencies. No HuggingFace packages.
   # Model inference goes through Anaconda Desktop at localhost:8080.
