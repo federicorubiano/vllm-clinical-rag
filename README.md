@@ -4,7 +4,7 @@
 
 A production RAG system that answers clinical questions grounded in the **Merck Manual Professional Edition** — built on Anaconda's trusted foundation for AI-native development.
 
-Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings, and deployed via Anaconda CLI + Outerbounds.
+Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings, and deployed via Anaconda CLI + Anaconda Platform AI Orchestration.
 
 > *"If you can't reproduce it, you can't trust it. If you can't trust it, you can't ship it."*
 
@@ -36,9 +36,9 @@ Every model weight enters through Anaconda's curated catalog — auditable prove
 
 [FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers semantic retrieval — finding chunks whose *meaning* matches the query, not just their keywords. A cross-encoder then reranks the top candidates for maximum relevance.
 
-## What is Outerbounds?
+## What is Anaconda Platform AI Orchestration?
 
-[Outerbounds](https://outerbounds.com) brings production orchestration and observability to the Anaconda platform. Anaconda already owns the trusted foundation in development — secure environments, curated packages, governed models. Outerbounds completes the path: the same code that runs locally deploys straight to a GPU-backed Kubernetes endpoint, with full lineage, monitoring, and guaranteed SLAs. Together, you get a single auditable path from experimentation to production. `ana ob deploy` is the command that closes that gap.
+**Anaconda Platform AI Orchestration** — formerly [Outerbounds](https://outerbounds.com), now part of Anaconda — brings production orchestration and observability to the Anaconda platform. Anaconda already owns the trusted foundation in development — secure environments, curated packages, governed models. AI Orchestration completes the path: the same code that runs locally deploys straight to a GPU-backed Kubernetes endpoint, with full lineage, monitoring, and guaranteed SLAs. Together, you get a single auditable path from experimentation to production. `ana ob deploy` is the command that closes that gap.
 
 ## What is Evidently AI?
 
@@ -84,7 +84,7 @@ Local development:
         ├── Qwen3-Embedding-4B server  → localhost:8080/v1/embeddings
         └── Qwen3-8B server            → localhost:8080/v1/chat/completions
 
-On Outerbounds (production):
+On Anaconda Platform (production):
     [Kubernetes GPU pod]
         ├── vLLM  (Qwen3-8B, GPU)  → localhost:8080/v1  ← same API surface
         └── FastAPI      (CPU)     → 0.0.0.0:8000  ← public endpoint
@@ -98,9 +98,9 @@ On Outerbounds (production):
 - [Anaconda CLI (`ana`)](https://anaconda.sh) installed
 - [Anaconda Desktop](https://www.anaconda.com/products/desktop) installed and running — provides the local model server for both embeddings and inference
 - Python 3.11
-- An Outerbounds account — required for GPU-backed production deployment
+- An Anaconda Platform account (AI Orchestration, formerly Outerbounds) — required for GPU-backed production deployment
 
-> **Mac users:** the full pipeline (scraping, indexing, API, and UI) runs locally on Apple Silicon via Anaconda Desktop. No GPU required for development. Outerbounds is the production path.
+> **Mac users:** the full pipeline (scraping, indexing, API, and UI) runs locally on Apple Silicon via Anaconda Desktop. No GPU required for development. Anaconda Platform AI Orchestration is the production path.
 
 ---
 
@@ -148,7 +148,7 @@ ana login
 
 ### Step 2: Create the environment
 
-**On a machine with an NVIDIA GPU** (or for Outerbounds deployment):
+**On a machine with an NVIDIA GPU** (or for Anaconda Platform deployment):
 ```bash
 conda env create -f environment.yml
 conda activate vllm-clinical-rag
@@ -201,11 +201,11 @@ python test_api.py
 
 You should see green checkmarks for health, query, and citation checks.
 
-### Step 8: Deploy to Outerbounds (required for GPU inference)
+### Step 8: Deploy to Anaconda Platform AI Orchestration (required for GPU inference)
 
 ```bash
 ana ob init       # first time only — registers the project
-ana ob configure  # paste your platform token from your Outerbounds admin
+ana ob configure  # paste your platform token from your Anaconda Platform admin
 ana ob check      # verify GPU + packages are compatible
 ana ob deploy     # push to production GPU endpoint
 ```
@@ -233,10 +233,10 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 ## Troubleshooting
 
 **`vllm` not found after `conda env create` on Mac**
-→ Expected — vLLM has no osx-arm64 conda build. Use `environment-local.yml` which omits vllm, then deploy to Outerbounds for GPU inference via `ana ob deploy`.
+→ Expected — vLLM has no osx-arm64 conda build. Use `environment-local.yml` which omits vllm, then deploy to Anaconda Platform for GPU inference via `ana ob deploy`.
 
 **`ana ob deploy` says authorization required**
-→ Run `ana ob configure <token>` first. Get your token from your Outerbounds admin.
+→ Run `ana ob configure <token>` first. Get your token from your Anaconda Platform admin.
 
 **FAISS index not found**
 → Run `python scripts/build_index.py` to generate `data/index/merck.faiss`.
@@ -294,7 +294,7 @@ anaconda sites list
 | Package | Role | Source |
 |---|---|---|
 | **Anaconda Desktop** | Local model server — Qwen3-8B (inference) + Qwen3-Embedding-4B (embeddings). Zero HuggingFace Hub calls; weights served from Anaconda's curated catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
-| **FAISS** | Vector similarity search — CPU locally, GPU on Outerbounds | Anaconda `main` (faiss-cpu + faiss-gpu) |
+| **FAISS** | Vector similarity search — CPU locally, GPU on Anaconda Platform | Anaconda `main` (faiss-cpu + faiss-gpu) |
 | **Gradio** | Interactive demo UI | Anaconda `main` |
 | **Evidently AI** | RAG evaluation and monitoring | Anaconda `main` (added Q1 2026) |
 | **FastAPI** | Production REST API | Anaconda `main` |
@@ -316,7 +316,7 @@ anaconda sites list
 
 - [vLLM documentation](https://docs.vllm.ai)
 - [FAISS wiki](https://github.com/facebookresearch/faiss/wiki)
-- [Outerbounds documentation](https://docs.outerbounds.com)
+- [Anaconda Platform AI Orchestration docs (Outerbounds)](https://docs.outerbounds.com)
 - [Anaconda CLI](https://anaconda.sh)
 - [Merck Manual Professional Edition](https://www.merckmanuals.com/professional)
 - [Evidently AI docs](https://docs.evidentlyai.com)

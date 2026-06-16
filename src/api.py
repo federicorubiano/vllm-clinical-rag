@@ -70,7 +70,7 @@ app = FastAPI(
         "Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval, "
         "and Qwen3-Embedding-4B instruction-following embeddings. "
         "Fully self-hosted — no external APIs or HuggingFace Hub calls. "
-        "Built with Anaconda CLI + Outerbounds. For educational and demonstration purposes only."
+        "Built with Anaconda CLI + Anaconda Platform AI Orchestration. For educational and demonstration purposes only."
     ),
     version="2.0.0",
     lifespan=lifespan,
