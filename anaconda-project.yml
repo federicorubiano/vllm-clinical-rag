@@ -1,7 +1,9 @@
 name: vllm-clinical-rag
 description: >
-  Production RAG system over the Merck Manual powered by vLLM.
-  Deployed via Anaconda CLI + Outerbounds.
+  RAG system over the Merck Manual powered by Anaconda Desktop local inference
+  (Qwen3-8B generation + Qwen3-Embedding-4B retrieval, served at localhost:8080).
+  Secure-by-default: all packages from Anaconda curated channels, no pip, no
+  HuggingFace Hub. Deployed via Anaconda CLI + Anaconda Platform AI Orchestration.
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 commands:
@@ -15,7 +17,7 @@ commands:
 
   serve:
     unix: uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
-    description: "Start the vLLM-backed Clinical Knowledge API"
+    description: "Start the Clinical Knowledge API (Anaconda Desktop inference)"
 
   demo:
     unix: python src/gradio_app.py
@@ -25,37 +27,38 @@ commands:
     unix: python eval/run_eval.py
     description: "Run evaluation harness on 5 benchmark queries"
 
-# ── Variables ─────────────────────────────────────────────────────────────────
+# ── Variables (mirror .env.example) ────────────────────────────────────────────
 variables:
-  VLLM_MODEL:
-    description: "HuggingFace model ID for vLLM (e.g. mistralai/Mistral-7B-Instruct-v0.3)"
-    default: "mistralai/Mistral-7B-Instruct-v0.3"
+  DESKTOP_API_URL:
+    description: "URL of the running Anaconda Desktop local model server"
+    default: "http://localhost:8080/v1"
 
-  VLLM_BASE_URL:
-    description: "vLLM inference server URL"
-    default: "http://localhost:8001/v1"
+  INFERENCE_MODEL:
+    description: "Inference model loaded as a server in Anaconda Desktop"
+    default: "Qwen3-8B"
 
   EMBEDDING_MODEL:
-    description: "Sentence-transformer model for embeddings"
-    default: "thenlper/gte-large"
+    description: "Embedding model loaded as a server in Anaconda Desktop"
+    default: "Qwen3-Embedding-4B"
 
-  RERANKER_MODEL:
-    description: "Cross-encoder model for re-ranking"
-    default: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-
-  TOP_K_RETRIEVE:
-    description: "Number of chunks to retrieve before re-ranking"
-    default: "10"
-
-  TOP_K_RERANK:
-    description: "Number of chunks to pass to LLM after re-ranking"
-    default: "4"
+  TOP_K:
+    description: "Number of chunks returned to the LLM (post FAISS search)"
+    default: "5"
 
 # ── Packages (mirrors environment.yml for Anaconda Project compatibility) ──────
 packages:
   - python=3.11
   - requests
   - beautifulsoup4
+  - lxml
+  - faiss-gpu
   - fastapi
-  - uvicorn
+  - "uvicorn[standard]"
+  - pydantic
+  - gradio
+  - evidently
   - jupyter
+  - ipykernel
+  - python-dotenv
+  - tqdm
+  - rich
