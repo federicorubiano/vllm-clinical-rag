@@ -130,7 +130,8 @@ anaconda-clinical-rag/
 │   └── gradio_app.py       # Gradio demo UI
 ├── scripts/
 │   ├── scraper.py          # Merck Manual web scraper (robots.txt compliant)
-│   └── build_index.py      # Builds FAISS index + chunk metadata from scraped text
+│   ├── build_index.py      # Builds FAISS index + chunk metadata from scraped text
+│   └── smoke_test.sh       # End-to-end, non-destructive setup verification
 ├── eval/
 │   └── run_eval.py         # Heuristic evaluation harness (5 benchmark queries)
 ├── notebooks/
