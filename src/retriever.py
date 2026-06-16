@@ -1,26 +1,39 @@
 """
 retriever.py
 ------------
-Dense retrieval pipeline:
-  1. FAISS dense search         — semantic similarity via gte-large embeddings
-  2. Cross-encoder re-ranking   — reorder candidates by true relevance
+Dense retrieval pipeline backed by Anaconda Desktop's local model server.
 
-Returns the top-k most relevant chunks for a given query,
-each with source metadata for citation enforcement.
+  1. FAISS dense search  — semantic similarity via Qwen3-Embedding embeddings
+                           (query embedded with clinical instruction prefix)
+  2. Top-k returned      — cross-encoder dropped; Qwen3-Embedding's
+                           instruction-following asymmetry replaces it
+
+No Hugging Face Hub calls. No sentence-transformers or transformers packages.
+All embedding calls go to Anaconda Desktop's OpenAI-compatible /v1/embeddings.
 """
 
 import json
 import logging
+import os
 from pathlib import Path
 from dataclasses import dataclass
 
+import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer, CrossEncoder
+import requests
 
 log = logging.getLogger(__name__)
 
+# Instruction prefix for query-side embedding (Qwen3-Embedding asymmetric design).
+# Documents are embedded without a prefix; queries use this instruction so the
+# model understands retrieval intent. This is the standard Qwen3-Embedding usage.
+QUERY_INSTRUCTION = (
+    "Instruct: Given a clinical question, retrieve relevant medical passages "
+    "that answer the question\nQuery: "
+)
 
-# ── Data model ───────────────────────────────────────────────────────────────
+
+# ── Data model ────────────────────────────────────────────────────────────────
 
 @dataclass
 class RetrievedChunk:
@@ -36,29 +49,35 @@ class RetrievedChunk:
 
 class DenseRetriever:
     """
-    FAISS dense retriever with cross-encoder re-ranking.
+    FAISS dense retriever using Anaconda Desktop's local embedding API.
+
+    Replaces the previous sentence-transformers + cross-encoder pipeline.
+    All model calls go to localhost — no external API, no HuggingFace Hub.
 
     Parameters
     ----------
     faiss_path       : path to FAISS index file
     chunks_path      : path to chunk metadata JSON
-    embedding_model  : sentence-transformer model name
-    reranker_model   : cross-encoder model name
-    top_k_retrieve   : candidates to retrieve from FAISS before re-ranking
-    top_k_rerank     : final chunks returned after re-ranking
+    api_url          : Anaconda Desktop model server base URL
+    embedding_model  : embedding model name as shown in Desktop catalog
+    top_k            : number of chunks to return
     """
 
     def __init__(
         self,
         faiss_path: str = "data/index/merck.faiss",
         chunks_path: str = "data/index/chunks.json",
-        embedding_model: str = "thenlper/gte-large",
-        reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
-        top_k_retrieve: int = 20,
-        top_k_rerank: int = 4,
+        api_url: str | None = None,
+        embedding_model: str | None = None,
+        top_k: int = 5,
     ):
-        self.top_k_retrieve = top_k_retrieve
-        self.top_k_rerank = top_k_rerank
+        self.api_url = (
+            api_url or os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
+        ).rstrip("/")
+        self.embedding_model = (
+            embedding_model or os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B")
+        )
+        self.top_k = top_k
 
         log.info("Loading chunk metadata...")
         self.chunks: list[dict] = json.loads(Path(chunks_path).read_text())
@@ -66,51 +85,62 @@ class DenseRetriever:
         log.info("Loading FAISS index...")
         self.faiss_index = faiss.read_index(faiss_path)
 
-        log.info(f"Loading embedding model: {embedding_model}")
-        self.embedder = SentenceTransformer(embedding_model)
+        log.info(
+            f"Retriever ready — {len(self.chunks)} chunks indexed. "
+            f"Embedding: {self.embedding_model} via {self.api_url}"
+        )
 
-        log.info(f"Loading cross-encoder: {reranker_model}")
-        self.reranker = CrossEncoder(reranker_model, max_length=512)
+    # ── Query embedding ───────────────────────────────────────────────────────
 
-        log.info(f"Retriever ready — {len(self.chunks)} chunks indexed.")
+    def _embed_query(self, query: str) -> np.ndarray:
+        """
+        Embed a query using the clinical instruction prefix.
+
+        Qwen3-Embedding is an instruction-following model: queries include
+        a task instruction, documents do not. This asymmetry is what replaces
+        the old cross-encoder reranking step.
+        """
+        instructed = QUERY_INSTRUCTION + query
+
+        try:
+            resp = requests.post(
+                f"{self.api_url}/embeddings",
+                json={"model": self.embedding_model, "input": [instructed]},
+                timeout=30,
+            )
+            resp.raise_for_status()
+        except requests.exceptions.ConnectionError:
+            log.error(
+                f"Cannot reach Anaconda Desktop at {self.api_url}. "
+                "Is the embedding model server running?"
+            )
+            raise
+
+        data = resp.json()
+        vec = np.array(data["data"][0]["embedding"], dtype="float32")
+
+        # L2-normalise (index was built with normalised vectors)
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+
+        return vec.reshape(1, -1)
 
     # ── Dense retrieval ───────────────────────────────────────────────────────
 
-    def _dense_search(self, query: str) -> list[tuple[int, float]]:
-        """Return (chunk_idx, score) pairs from FAISS."""
-        vec = self.embedder.encode(
-            [query], normalize_embeddings=True, convert_to_numpy=True
-        ).astype("float32")
-
-        scores, indices = self.faiss_index.search(vec, self.top_k_retrieve)
-        return list(zip(indices[0].tolist(), scores[0].tolist()))
-
-    # ── Cross-encoder re-ranking ──────────────────────────────────────────────
-
-    def _rerank(self, query: str, candidate_indices: list[int]) -> list[tuple[int, float]]:
-        """Re-rank candidates with a cross-encoder. Returns (idx, score) pairs."""
-        pairs = [(query, self.chunks[i]["text"]) for i in candidate_indices]
-        scores = self.reranker.predict(pairs)
-        ranked = sorted(
-            zip(candidate_indices, scores.tolist()),
-            key=lambda x: x[1],
-            reverse=True,
-        )
-        return ranked[: self.top_k_rerank]
-
-    # ── Public interface ──────────────────────────────────────────────────────
-
     def retrieve(self, query: str) -> list[RetrievedChunk]:
         """
-        Dense retrieval pipeline.
-        Returns top-k RetrievedChunk objects, best first.
+        Embed the query and search FAISS.
+
+        Returns top-k RetrievedChunk objects ordered by cosine similarity.
         """
-        dense_results = self._dense_search(query)
-        candidate_indices = [idx for idx, _ in dense_results]
-        ranked = self._rerank(query, candidate_indices)
+        query_vec = self._embed_query(query)
+        scores, indices = self.faiss_index.search(query_vec, self.top_k)
 
         results = []
-        for idx, score in ranked:
+        for idx, score in zip(indices[0].tolist(), scores[0].tolist()):
+            if idx < 0:
+                continue  # FAISS returns -1 for empty slots
             c = self.chunks[idx]
             results.append(
                 RetrievedChunk(
@@ -119,7 +149,7 @@ class DenseRetriever:
                     section=c["section"],
                     url=c["url"],
                     text=c["text"],
-                    score=score,
+                    score=float(score),
                 )
             )
 

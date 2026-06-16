@@ -1,24 +1,29 @@
 name: vllm-rag
 # ─────────────────────────────────────────────────────────────────────────────
 # LOCAL / MAC DEVELOPMENT ENVIRONMENT
-# Use this on any machine without an NVIDIA GPU (MacBook, CI, etc.)
+# Use this on any machine, including MacBook (Apple Silicon or Intel).
 #
 #   conda env create -f environment-local.yml
 #   conda activate vllm-rag
 #
-# Differences from environment.yml (GPU/Outerbounds):
-#   - faiss-cpu  instead of  faiss-gpu
-#   - vllm omitted  (no GPU — run via ana ob deploy)
+# Inference and embeddings are handled by Anaconda Desktop's local model server
+# (localhost:8080) — no GPU required in this environment, no HuggingFace Hub.
 #
 # What you CAN do locally with this env:
-#   ✅  python scripts/scraper.py       — scrape Merck Manual
-#   ✅  python scripts/build_index.py   — build FAISS index
-#   ✅  python test_api.py --url <endpoint>  — test a remote API
-#   ✅  python eval/run_eval.py --api-url <endpoint>
-#   ❌  bash scripts/start_vllm.sh      — needs GPU (use ana ob deploy)
+#   ✅  python scripts/scraper.py           — scrape Merck Manual
+#   ✅  python scripts/build_index.py       — build FAISS index (via Desktop)
+#   ✅  uvicorn src.api:app --reload        — run the full API (via Desktop)
+#   ✅  python src/gradio_app.py            — launch demo UI
+#   ✅  python test_api.py                  — connectivity test
+#   ✅  python eval/run_eval.py             — run evaluation harness
+#
+# Prerequisites:
+#   - Anaconda Desktop installed and running
+#   - Qwen3-Embedding-4B loaded as model server in Desktop
+#   - Qwen3-8B loaded as model server in Desktop
 # ─────────────────────────────────────────────────────────────────────────────
 channels:
-  - main         # all packages — faiss-cpu, sentence-transformers, gradio, evidently
+  - main         # all packages — faiss-cpu, gradio, evidently
   - defaults
 
 dependencies:
@@ -29,9 +34,9 @@ dependencies:
   - beautifulsoup4
   - lxml
 
-  # ── Embeddings & retrieval ─────────────────────────────────────────────────
-  - sentence-transformers
-  - faiss-cpu          # CPU fallback — works on Mac/Linux without NVIDIA GPU
+  # ── Retrieval ──────────────────────────────────────────────────────────────
+  # sentence-transformers removed — embeddings via Anaconda Desktop API
+  - faiss-cpu          # CPU build — works on Mac/Linux without NVIDIA GPU
 
   # ── API layer ──────────────────────────────────────────────────────────────
   - fastapi
@@ -51,5 +56,5 @@ dependencies:
   - tqdm
   - rich
 
-  # No pip dependencies — all packages from Anaconda main channel.
-  # vllm intentionally omitted — no GPU locally. Deploy with: ana ob deploy
+  # No pip dependencies. No HuggingFace packages.
+  # Model inference goes through Anaconda Desktop at localhost:8080.

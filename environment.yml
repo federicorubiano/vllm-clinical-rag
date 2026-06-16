@@ -1,8 +1,7 @@
 name: vllm-clinical-rag
 channels:
-  - main         # all packages — faiss-gpu, sentence-transformers, gradio, evidently
+  - main         # all packages — faiss-gpu, gradio, evidently, fastapi
   - defaults
-  # vllm GPU is pip-only until the conda GPU build ships (see pip section below)
 
 dependencies:
   - python=3.11
@@ -12,8 +11,9 @@ dependencies:
   - beautifulsoup4
   - lxml
 
-  # ── Embeddings & retrieval ─────────────────────────────────────────────────
-  - sentence-transformers
+  # ── Retrieval ──────────────────────────────────────────────────────────────
+  # sentence-transformers and transformers removed — embeddings served locally
+  # by Anaconda Desktop (Qwen3-Embedding-4B). No HuggingFace Hub calls.
   - faiss-gpu          # Anaconda main (linux-64) — requires NVIDIA GPU
 
   # ── API layer ──────────────────────────────────────────────────────────────
@@ -34,8 +34,6 @@ dependencies:
   - tqdm
   - rich
 
-  # ── Inference ─────────────────────────────────────────────────────────────
-  # vllm CPU is on Anaconda main (linux-64). GPU build in progress — blocked
-  # by build platform issues. Using pip for GPU until conda package is ready.
-  - pip:
-    - vllm               # GPU version: pip fallback until conda GPU build ships
+  # No pip dependencies. No HuggingFace packages.
+  # All model inference (embeddings + generation) goes through Anaconda Desktop
+  # at localhost:8080 — fully audited, supply-chain clean.

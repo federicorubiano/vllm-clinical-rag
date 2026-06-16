@@ -76,16 +76,6 @@ TOPICS = [
         "url": "/professional/gastrointestinal-disorders/acute-abdomen-and-surgical-gastroenterology/appendicitis",
         "section": "Gastrointestinal",
     },
-    {
-        "slug": "acute-abdomen",
-        "url": "/professional/gastrointestinal-disorders/acute-abdomen-and-surgical-gastroenterology/overview-of-acute-abdomen-and-surgical-gastroenterology",
-        "section": "Gastrointestinal",
-    },
-    {
-        "slug": "peritonitis",
-        "url": "/professional/gastrointestinal-disorders/acute-abdomen-and-surgical-gastroenterology/peritonitis",
-        "section": "Gastrointestinal",
-    },
 
     # ── Neurology / Traumatic Brain Injury ───────────────────────────────────
     {
@@ -93,53 +83,18 @@ TOPICS = [
         "url": "/professional/injuries-poisoning/traumatic-brain-injury-tbi/traumatic-brain-injury-tbi",
         "section": "Neurology",
     },
-    {
-        "slug": "concussion",
-        "url": "/professional/injuries-poisoning/traumatic-brain-injury-tbi/concussion",
-        "section": "Neurology",
-    },
-    {
-        "slug": "intracranial-hemorrhage",
-        "url": "/professional/neurologic-disorders/stroke/intracranial-hemorrhage",
-        "section": "Neurology",
-    },
 
-    # ── Dermatology / Hair Loss ──────────────────────────────────────────────
+    # ── Dermatology ──────────────────────────────────────────────────────────
     {
         "slug": "alopecia-areata",
         "url": "/professional/dermatologic-disorders/hair-disorders/alopecia-areata",
         "section": "Dermatology",
     },
-    {
-        "slug": "androgenetic-alopecia",
-        "url": "/professional/dermatologic-disorders/hair-disorders/androgenetic-alopecia",
-        "section": "Dermatology",
-    },
-    {
-        "slug": "telogen-effluvium",
-        "url": "/professional/dermatologic-disorders/hair-disorders/telogen-effluvium",
-        "section": "Dermatology",
-    },
 
-    # ── Injuries / Fractures ─────────────────────────────────────────────────
-    {
-        "slug": "fractures",
-        "url": "/professional/injuries-poisoning/fractures/fractures",
-        "section": "Orthopedics",
-    },
-    {
-        "slug": "sprains-and-strains",
-        "url": "/professional/injuries-poisoning/sprains-and-strains/sprains-and-strains",
-        "section": "Orthopedics",
-    },
+    # ── Orthopedics ──────────────────────────────────────────────────────────
     {
         "slug": "compartment-syndrome",
         "url": "/professional/injuries-poisoning/fractures/compartment-syndrome",
-        "section": "Orthopedics",
-    },
-    {
-        "slug": "wilderness-medicine-overview",
-        "url": "/professional/injuries-poisoning/wilderness-medicine/wilderness-medicine-overview",
         "section": "Orthopedics",
     },
 ]

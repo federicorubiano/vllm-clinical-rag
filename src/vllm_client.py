@@ -1,10 +1,13 @@
 """
-vllm_client.py
---------------
-Thin wrapper around the vLLM chat completions endpoint.
-Uses requests (Anaconda main) — no external API keys or third-party SDKs.
-Handles prompt construction, citation formatting, and the
-medical disclaimer appended to every response.
+desktop_client.py (was: vllm_client.py)
+----------------------------------------
+Thin wrapper around Anaconda Desktop's local model server chat completions
+endpoint. Uses requests (Anaconda main) — no external API keys, no third-party
+SDKs, no HuggingFace Hub.
+
+Anaconda Desktop exposes an OpenAI-compatible API at localhost:8080.
+This client is identical in interface to the old VLLMClient; only the
+default endpoint and model name have changed.
 """
 
 import os
@@ -53,15 +56,17 @@ def build_user_prompt(question: str, chunks) -> str:
 {question}"""
 
 
-class VLLMClient:
+class DesktopClient:
     """
-    HTTP client pointing at a local or Outerbounds-hosted vLLM server.
-    Calls the /v1/chat/completions endpoint directly using requests.
+    HTTP client pointing at Anaconda Desktop's local model server.
+    Calls the /v1/chat/completions endpoint via requests.
+
+    Desktop exposes an OpenAI-compatible API — no SDK needed, no external calls.
 
     Parameters
     ----------
-    base_url  : vLLM server URL (default from env VLLM_BASE_URL)
-    model     : model ID loaded in vLLM (default from env VLLM_MODEL)
+    base_url  : Desktop model server URL (default from env DESKTOP_API_URL)
+    model     : model name as shown in Desktop catalog (default from env INFERENCE_MODEL)
     """
 
     def __init__(
@@ -69,9 +74,11 @@ class VLLMClient:
         base_url: str | None = None,
         model: str | None = None,
     ):
-        self.base_url = (base_url or os.getenv("VLLM_BASE_URL", "http://localhost:8001/v1")).rstrip("/")
-        self.model    = model or os.getenv("VLLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.3")
-        log.info(f"vLLM client → {self.base_url} | model: {self.model}")
+        self.base_url = (
+            base_url or os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
+        ).rstrip("/")
+        self.model = model or os.getenv("INFERENCE_MODEL", "Qwen3-8B")
+        log.info(f"Desktop client → {self.base_url} | model: {self.model}")
 
     def generate(
         self,
@@ -87,14 +94,14 @@ class VLLMClient:
         -------
         dict with keys:
             answer      : str  — full response text including citations + disclaimer
-            sources     : list — list of {slug, section, url} dicts for the used chunks
+            sources     : list — list of {slug, section, url} dicts
             model       : str  — model ID
             usage       : dict — token usage from the API
         """
         user_message = build_user_prompt(question, chunks)
 
         payload = {
-            "model":       self.model,
+            "model":      self.model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": user_message},
@@ -113,13 +120,16 @@ class VLLMClient:
             resp.raise_for_status()
             data = resp.json()
         except requests.exceptions.ConnectionError:
-            log.error(f"Cannot reach vLLM at {self.base_url}. Is the server running?")
+            log.error(
+                f"Cannot reach Anaconda Desktop at {self.base_url}. "
+                "Is the inference model server running?"
+            )
             raise
         except Exception as e:
-            log.error(f"vLLM inference error: {e}")
+            log.error(f"Desktop inference error: {e}")
             raise
 
-        answer_text          = data["choices"][0]["message"]["content"].strip()
+        answer_text = data["choices"][0]["message"]["content"].strip()
         answer_with_disclaimer = answer_text + DISCLAIMER
 
         usage = data.get("usage", {})
@@ -138,3 +148,7 @@ class VLLMClient:
                 "total_tokens":      usage.get("total_tokens", 0),
             },
         }
+
+
+# Backwards-compatible alias — api.py imports VLLMClient
+VLLMClient = DesktopClient

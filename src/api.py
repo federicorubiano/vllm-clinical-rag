@@ -41,18 +41,20 @@ llm_client: VLLMClient | None = None
 async def lifespan(app: FastAPI):
     global retriever, llm_client
     log.info("Loading retriever and vLLM client...")
+    # Use separate URLs for embedding and inference so two Desktop servers
+    # (on different ports) can be configured independently via .env.
+    # Fall back to DESKTOP_API_URL if the role-specific vars are not set.
+    _desktop = os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
     retriever = HybridRetriever(
         faiss_path=os.getenv("FAISS_INDEX_PATH", "data/index/merck.faiss"),
-        bm25_path="data/index/bm25.pkl",
         chunks_path=os.getenv("CHUNK_METADATA_PATH", "data/index/chunks.json"),
-        embedding_model=os.getenv("EMBEDDING_MODEL", "thenlper/gte-large"),
-        reranker_model=os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"),
-        top_k_retrieve=int(os.getenv("TOP_K_RETRIEVE", 10)),
-        top_k_rerank=int(os.getenv("TOP_K_RERANK", 4)),
+        api_url=os.getenv("EMBEDDING_API_URL", _desktop),
+        embedding_model=os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B"),
+        top_k=int(os.getenv("TOP_K", 5)),
     )
     llm_client = VLLMClient(
-        base_url=os.getenv("VLLM_BASE_URL", "http://localhost:8001/v1"),
-        model=os.getenv("VLLM_MODEL", "mistralai/Mistral-7B-Instruct-v0.3"),
+        base_url=os.getenv("INFERENCE_API_URL", _desktop),
+        model=os.getenv("INFERENCE_MODEL", "Qwen3-8B"),
     )
     log.info("API ready.")
     yield
@@ -65,7 +67,9 @@ app = FastAPI(
     title="Clinical Knowledge API",
     description=(
         "Answers clinical queries grounded in the Merck Manual Professional Edition. "
-        "Powered by vLLM inference, FAISS + BM25 hybrid retrieval, and cross-encoder re-ranking. "
+        "Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval, "
+        "and Qwen3-Embedding-4B instruction-following embeddings. "
+        "Fully self-hosted — no external APIs or HuggingFace Hub calls. "
         "Built with Anaconda CLI + Outerbounds. For educational and demonstration purposes only."
     ),
     version="2.0.0",
@@ -112,21 +116,21 @@ class HealthResponse(BaseModel):
     status: str
     chunks_loaded: int
     model: str
-    vllm_url: str
+    desktop_url: str
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 def health():
-    """Liveness check — confirms retriever and vLLM client are loaded."""
+    """Liveness check — confirms retriever and Desktop client are loaded."""
     if retriever is None or llm_client is None:
         raise HTTPException(status_code=503, detail="Service not ready")
     return {
         "status": "ok",
         "chunks_loaded": len(retriever.chunks),
         "model": llm_client.model,
-        "vllm_url": llm_client.base_url,
+        "desktop_url": llm_client.base_url,
     }
 
 
