@@ -50,7 +50,7 @@ By the end of this guide you will be able to:
 
 ## What is Evidently AI?
 
-[Evidently AI](https://www.evidentlyai.com) is an open-source library for evaluating and monitoring ML models and LLM pipelines. In this demo it is available as a conda dependency from the Anaconda `main` channel (added Q1 2026) — no pip required. The evaluation harness uses custom heuristic scoring for full reproducibility (no LLM-as-judge); Evidently's richer metrics are available for deeper analysis.
+[Evidently AI](https://www.evidentlyai.com) is an open-source library for evaluating and monitoring ML models and LLM pipelines. Here the evaluation harness computes reproducible heuristic scores (no LLM-as-judge) and renders them through an Evidently **`DataSummaryPreset`** report — `python eval/run_eval.py --report` builds `eval/report.html` with per-metric statistics across the benchmark queries. Installed from the Anaconda `main` channel (added Q1 2026) — no pip required.
 
 ---
 

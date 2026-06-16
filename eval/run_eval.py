@@ -25,7 +25,7 @@ Usage:
 
 Output:
     eval/results.json     — per-query scores + aggregate metrics
-    eval/report.html      — HTML report (open in browser)
+    eval/report.html      — Evidently AI report (open in browser)
 """
 
 import argparse
@@ -166,10 +166,10 @@ def score_relevance_heuristic(question: str, answer: str, expected_sections: lis
 
 # ── HTML report ───────────────────────────────────────────────────────────────
 
-def run_html_report(results: list[dict], output_dir: Path) -> str | None:
+def _basic_html_report(results: list[dict], output_dir: Path) -> str | None:
     """
-    Generate a self-contained HTML evaluation report using only pandas
-    (Anaconda main channel). No external dependencies required.
+    Fallback HTML report using only pandas (Anaconda main channel).
+    Used when Evidently is unavailable so the harness never hard-fails.
     """
     import pandas as pd
 
@@ -241,6 +241,53 @@ def run_html_report(results: list[dict], output_dir: Path) -> str | None:
     report_path.write_text(html)
     log.info(f"Report saved → {report_path}")
     return str(report_path)
+
+
+# ── Evidently report (primary) ────────────────────────────────────────────────
+
+def run_report(results: list[dict], output_dir: Path) -> str | None:
+    """
+    Generate the HTML evaluation report with **Evidently AI** (Anaconda main).
+
+    Builds an Evidently Dataset from the per-query scores and renders a
+    DataSummaryPreset report — descriptive statistics across every metric
+    column. No LLM-as-judge, no reference dataset, fully offline.
+
+    Falls back to a minimal pandas table (`_basic_html_report`) if Evidently
+    is unavailable, so the reporting step never hard-fails.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = output_dir / "report.html"
+
+    rows = [
+        {
+            "query":         r["question"][:80],
+            "groundedness":  r["scores"]["groundedness"],
+            "relevance":     r["scores"]["relevance"],
+            "citation_rate": r["scores"]["citation_rate"],
+            "disclaimer":    r["scores"]["disclaimer_present"],
+            "structure":     r["scores"]["structure"],
+            "overall":       r["scores"]["overall"],
+            "latency_ms":    r["latency_ms"],
+        }
+        for r in results
+    ]
+
+    try:
+        import pandas as pd
+        from evidently import Report, Dataset, DataDefinition
+        from evidently.presets import DataSummaryPreset
+
+        df = pd.DataFrame(rows)
+        dataset = Dataset.from_pandas(df, data_definition=DataDefinition())
+        report = Report([DataSummaryPreset()])
+        result = report.run(dataset, None)   # single dataset, no reference
+        result.save_html(str(report_path))
+        log.info(f"Evidently report saved → {report_path}")
+        return str(report_path)
+    except Exception as e:
+        log.warning(f"Evidently unavailable ({e}); using basic HTML table instead.")
+        return _basic_html_report(results, output_dir)
 
 
 # ── Main evaluation loop ──────────────────────────────────────────────────────
@@ -386,7 +433,7 @@ def main():
     parser.add_argument(
         "--report",
         action="store_true",
-        help="Generate HTML evaluation report (pandas only — no extra dependencies)",
+        help="Generate the Evidently AI HTML report (falls back to a basic table if unavailable)",
     )
     args = parser.parse_args()
 
@@ -394,7 +441,7 @@ def main():
     eval_output = run_evaluation(args.api_url, output_path)
 
     if args.report:
-        run_html_report(eval_output["results"], output_path.parent)
+        run_report(eval_output["results"], output_path.parent)
 
 
 if __name__ == "__main__":
