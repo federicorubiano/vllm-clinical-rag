@@ -48,17 +48,17 @@ variables:
 # ── Packages (mirrors environment.yml for Anaconda Project compatibility) ──────
 packages:
   - python=3.11
-  - requests
-  - beautifulsoup4
-  - lxml
-  - faiss-gpu
-  - fastapi
-  - "uvicorn[standard]"
-  - pydantic
-  - gradio
-  - evidently
-  - jupyter
-  - ipykernel
-  - python-dotenv
-  - tqdm
-  - rich
+  - requests==2.34.2
+  - beautifulsoup4==4.15.0
+  - lxml==6.1.0
+  - faiss-gpu==1.14.1
+  - fastapi==0.135.4
+  - uvicorn==0.40.0
+  - pydantic==2.13.4
+  - gradio==6.14.0
+  - evidently==0.7.21
+  - jupyter==1.1.1
+  - ipykernel==7.2.0
+  - python-dotenv==1.2.1
+  - tqdm==4.68.2
+  - rich==15.0.0
