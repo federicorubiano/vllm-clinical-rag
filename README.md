@@ -1,4 +1,4 @@
-# 🏥 Clinical Knowledge RAG — vLLM + Anaconda CLI + Outerbounds
+# 🏥 Clinical Knowledge RAG — vLLM + Anaconda CLI + Anaconda Platform AI Orchestration
 
 > **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Last tested:** 2026-05-18 | **Status:** Active | **Estimated time:** 60–90 minutes
 
