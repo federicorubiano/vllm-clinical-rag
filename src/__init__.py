@@ -1,1 +1,1 @@
-# vllm-clinical-rag source package
+# anaconda-clinical-rag source package

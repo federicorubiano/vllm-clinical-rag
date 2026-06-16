@@ -24,7 +24,7 @@ BENCHMARK_QUERIES = [
 
 DESCRIPTION = """
 ## 🏥 Clinical Knowledge API — Demo
-**Powered by Anaconda Desktop · FAISS · Anaconda CLI + Anaconda Platform AI Orchestration**
+**Powered by Anaconda Desktop · FAISS · FastAPI**
 
 Answers clinical queries grounded in the **Merck Manual Professional Edition**.
 Every response includes source citations and a mandatory medical disclaimer.

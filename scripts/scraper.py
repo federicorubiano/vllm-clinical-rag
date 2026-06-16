@@ -9,7 +9,7 @@ Respects robots.txt:
   - Only fetches from allowed paths (no /monograph/, /multimedia/, etc.)
 
 Usage:
-    conda activate vllm-clinical-rag
+    conda activate anaconda-clinical-rag
     python scripts/scraper.py
 
 Output:
@@ -37,8 +37,8 @@ MANIFEST_PATH = OUTPUT_DIR / "manifest.json"
 
 HEADERS = {
     "User-Agent": (
-        "vllm-clinical-rag/1.0 (educational demo; "
-        "github.com/federicorubiano/vllm-clinical-rag)"
+        "anaconda-clinical-rag/1.0 (educational demo; "
+        "github.com/federicorubiano/anaconda-clinical-rag)"
     )
 }
 

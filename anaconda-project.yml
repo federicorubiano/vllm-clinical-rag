@@ -1,9 +1,9 @@
-name: vllm-clinical-rag
+name: anaconda-clinical-rag
 description: >
   RAG system over the Merck Manual powered by Anaconda Desktop local inference
   (Qwen3-8B generation + Qwen3-Embedding-4B retrieval, served at localhost:8080).
   Secure-by-default: all packages from Anaconda curated channels, no pip, no
-  HuggingFace Hub. Deployed via Anaconda CLI + Anaconda Platform AI Orchestration.
+  HuggingFace Hub. Runs entirely locally — no GPU required.
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 commands:
@@ -51,7 +51,7 @@ packages:
   - requests==2.34.2
   - beautifulsoup4==4.15.0
   - lxml==6.1.0
-  - faiss-gpu==1.14.1
+  - faiss-cpu==1.14.1
   - fastapi==0.135.4
   - uvicorn==0.40.0
   - pydantic==2.13.4

@@ -10,7 +10,7 @@ The manual is freely available online at no cost — no account or PDF required.
 Run the scraper to fetch the relevant sections:
 
 ```bash
-conda activate vllm-clinical-rag
+conda activate anaconda-clinical-rag
 python scripts/scraper.py
 ```
 

@@ -1,13 +1,11 @@
 """
-desktop_client.py (was: vllm_client.py)
-----------------------------------------
+desktop_client.py
+-----------------
 Thin wrapper around Anaconda Desktop's local model server chat completions
 endpoint. Uses requests (Anaconda main) — no external API keys, no third-party
 SDKs, no HuggingFace Hub.
 
 Anaconda Desktop exposes an OpenAI-compatible API at localhost:8080.
-This client is identical in interface to the old VLLMClient; only the
-default endpoint and model name have changed.
 """
 
 import os
@@ -148,7 +146,3 @@ class DesktopClient:
                 "total_tokens":      usage.get("total_tokens", 0),
             },
         }
-
-
-# Backwards-compatible alias — api.py imports VLLMClient
-VLLMClient = DesktopClient

@@ -1,9 +1,9 @@
-name: vllm-clinical-rag
+name: anaconda-clinical-rag
 # ─────────────────────────────────────────────────────────────────────────────
-# GPU / PRODUCTION ENVIRONMENT (Anaconda Platform AI Orchestration)
+# Runs locally on Mac (Apple Silicon) or any CPU-only machine. No GPU required.
 # Versions pinned exactly against the Anaconda `main` channel (verified 2026-06).
 # For a deterministic, hash-locked build:
-#   conda-lock -f environment.yml -p linux-64
+#   conda-lock -f environment.yml -p osx-arm64
 # ─────────────────────────────────────────────────────────────────────────────
 channels:
   - main
@@ -20,7 +20,7 @@ dependencies:
   # ── Retrieval ──────────────────────────────────────────────────────────────
   # sentence-transformers/transformers removed — embeddings served locally by
   # Anaconda Desktop (Qwen3-Embedding-4B). No HuggingFace Hub calls.
-  - faiss-gpu==1.14.1          # Anaconda main — requires NVIDIA GPU
+  - faiss-cpu==1.14.1          # CPU build — works on Mac/Linux without an NVIDIA GPU
 
   # ── API layer ──────────────────────────────────────────────────────────────
   - fastapi==0.135.4
@@ -41,5 +41,5 @@ dependencies:
   - rich==15.0.0
 
   # No pip dependencies. No HuggingFace packages.
-  # All model inference (embeddings + generation) goes through Anaconda Desktop /
-  # Anaconda Platform at localhost:8080 — fully audited, supply-chain clean.
+  # All model inference (embeddings + generation) goes through Anaconda Desktop
+  # at localhost:8080 — fully audited, supply-chain clean.

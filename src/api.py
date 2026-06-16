@@ -1,7 +1,7 @@
 """
 api.py
 ------
-FastAPI Clinical Knowledge API backed by vLLM.
+FastAPI Clinical Knowledge API backed by Anaconda Desktop local inference.
 
 Endpoints:
     POST /query          — answer a clinical question
@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 from src.retriever import HybridRetriever
-from src.vllm_client import VLLMClient
+from src.desktop_client import DesktopClient
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -34,13 +34,13 @@ log = logging.getLogger(__name__)
 # ── Startup / shutdown ────────────────────────────────────────────────────────
 
 retriever: HybridRetriever | None = None
-llm_client: VLLMClient | None = None
+llm_client: DesktopClient | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global retriever, llm_client
-    log.info("Loading retriever and vLLM client...")
+    log.info("Loading retriever and Anaconda Desktop client...")
     # Use separate URLs for embedding and inference so two Desktop servers
     # (on different ports) can be configured independently via .env.
     # Fall back to DESKTOP_API_URL if the role-specific vars are not set.
@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
         embedding_model=os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B"),
         top_k=int(os.getenv("TOP_K", 5)),
     )
-    llm_client = VLLMClient(
+    llm_client = DesktopClient(
         base_url=os.getenv("INFERENCE_API_URL", _desktop),
         model=os.getenv("INFERENCE_MODEL", "Qwen3-8B"),
     )
@@ -70,7 +70,7 @@ app = FastAPI(
         "Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval, "
         "and Qwen3-Embedding-4B instruction-following embeddings. "
         "Fully self-hosted — no external APIs or HuggingFace Hub calls. "
-        "Built with Anaconda CLI + Anaconda Platform AI Orchestration. For educational and demonstration purposes only."
+        "Built with Anaconda CLI + Anaconda Desktop. For educational and demonstration purposes only."
     ),
     version="2.0.0",
     lifespan=lifespan,

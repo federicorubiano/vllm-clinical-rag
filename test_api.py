@@ -6,7 +6,7 @@ Run this after starting the API to verify everything is wired up correctly.
 
 Usage:
     python test_api.py
-    python test_api.py --url http://your-outerbounds-endpoint
+    python test_api.py --url http://localhost:8000
 
 You should see green checkmarks for all tests.
 """

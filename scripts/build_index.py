@@ -7,7 +7,7 @@ model server, and builds:
   - data/index/chunks.json      — chunk metadata (text, source, section, slug)
 
 Usage:
-    conda activate vllm-rag
+    conda activate anaconda-clinical-rag
     python scripts/build_index.py
 
 Requires:

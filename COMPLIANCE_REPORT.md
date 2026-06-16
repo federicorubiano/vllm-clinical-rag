@@ -1,6 +1,9 @@
-# Compliance Report: vllm-clinical-rag
+# Compliance Report: anaconda-clinical-rag
 Resource type: Guide
-Evaluated: 2026-06-16 (re-scored after Guide conversion)
+Evaluated: 2026-06-16 (Guide conversion + reframe from vLLM to Anaconda Desktop local inference)
+
+> ⚠️ This report should be **re-validated with the official `criteria_checker`** after the
+> vLLM→Desktop reframe and before submission. The notes below reflect the current repo state.
 
 ## Summary
 
@@ -21,7 +24,7 @@ Evaluated: 2026-06-16 (re-scored after Guide conversion)
 |-----------|--------|-------|
 | readme_sections | PASS | Description + Audience + named owner all present. |
 | named_owner | PASS | Federico Rubiano (@federicorubiano). |
-| environment_spec | PASS | `environment.yml` / `environment-local.yml` now pinned exactly (verified `main`-channel versions). Recommend `conda-lock` to confirm the solve. |
+| environment_spec | PASS | Single `environment.yml` (faiss-cpu; runs on Mac/Linux) pinned exactly to `main`-channel versions — each version confirmed present on `main`. Recommend `conda-lock` to confirm the full solve. |
 | no_secrets | PASS | `.env` untracked + gitignored; `.env.example` present; no secret patterns. |
 | no_pii | PASS | Public Merck text + synthetic queries. |
 | license | PASS | MIT LICENSE at root; holder updated to Anaconda, Inc. |
@@ -33,7 +36,7 @@ Evaluated: 2026-06-16 (re-scored after Guide conversion)
 | learning_objectives | PASS | 5 measurable, action-verb objectives ("What you'll learn"). |
 | prerequisites | PASS | Both knowledge and installation prerequisites, with links. |
 | completion_time | PASS | 45–90 min estimate. |
-| dependency_tier | PASS | External deps classified (Desktop Tier 3, Merck Tier 2, Platform Tier 3/optional). |
+| dependency_tier | PASS | External deps classified (Anaconda Desktop Tier 3, Merck website Tier 2). |
 | starting_state | PASS | Each build step/section opens with a start-state line. |
 | checkpoints | PASS | Each step ends with a ✅ checkpoint. |
 | output_examples | PASS | Sample outputs in fenced blocks per checkpoint + notebook cells. |
@@ -58,7 +61,8 @@ Evaluated: 2026-06-16 (re-scored after Guide conversion)
 - Run `conda-lock` to confirm the pinned env solves and capture a lockfile.
 - Re-run the notebook so the committed cells show **real** outputs (current samples are illustrative).
 - Capture the Gradio screenshot (`screenshots/gradio-ui.png`).
-- Update `anaconda-project.yml` — it still declares the old vLLM variables and unpinned packages (handled in HANDOFF for Claude Code).
+- ✅ `anaconda-project.yml` updated to Desktop vars and pinned packages (done).
+- ✅ vLLM fully removed from the runnable path; repo/title/code reframed to Anaconda Desktop (done).
 
 ### Polish (recommended, optional)
 - Add a glossary, an explicit "common mistakes" callout, and a CI smoke-test workflow.
