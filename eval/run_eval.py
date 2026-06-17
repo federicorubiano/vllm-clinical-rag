@@ -81,7 +81,7 @@ def call_api(api_url: str, question: str, max_tokens: int = 512) -> dict | None:
         resp = requests.post(
             f"{api_url}/query",
             json={"question": question, "max_tokens": max_tokens, "temperature": 0.1},
-            timeout=90,
+            timeout=180,   # 14B on Metal + long RAG prompts can take >90s/query
         )
         resp.raise_for_status()
         return resp.json()
@@ -262,13 +262,13 @@ def run_report(results: list[dict], output_dir: Path) -> str | None:
     rows = [
         {
             "query":         r["question"][:80],
-            "groundedness":  r["scores"]["groundedness"],
-            "relevance":     r["scores"]["relevance"],
-            "citation_rate": r["scores"]["citation_rate"],
-            "disclaimer":    r["scores"]["disclaimer_present"],
-            "structure":     r["scores"]["structure"],
-            "overall":       r["scores"]["overall"],
-            "latency_ms":    r["latency_ms"],
+            "groundedness":  r["scores"].get("groundedness", 0.0),
+            "relevance":     r["scores"].get("relevance", 0.0),
+            "citation_rate": r["scores"].get("citation_rate", 0.0),
+            "disclaimer":    r["scores"].get("disclaimer_present", 0.0),
+            "structure":     r["scores"].get("structure", 0.0),
+            "overall":       r["scores"].get("overall", 0.0),
+            "latency_ms":    r.get("latency_ms", 0),
         }
         for r in results
     ]
@@ -330,6 +330,7 @@ def run_evaluation(api_url: str, output_path: Path) -> dict:
                     "citation_rate":   0.0,
                     "disclaimer_present": 0.0,
                     "structure":       0.0,
+                    "overall":         0.0,
                 },
                 "error": "no_response",
             })

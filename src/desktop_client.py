@@ -113,7 +113,7 @@ class DesktopClient:
             resp = requests.post(
                 f"{self.base_url}/chat/completions",
                 json=payload,
-                timeout=120,
+                timeout=180,
             )
             resp.raise_for_status()
             data = resp.json()
