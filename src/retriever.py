@@ -5,10 +5,8 @@ Dense retrieval pipeline backed by Anaconda Desktop's local model server.
 
   1. FAISS dense search  — semantic similarity via Qwen3-Embedding embeddings
                            (query embedded with clinical instruction prefix)
-  2. Top-k returned      — cross-encoder dropped; Qwen3-Embedding's
-                           instruction-following asymmetry replaces it
+  2. Top-k returned      — ordered by cosine similarity from the FAISS search
 
-No Hugging Face Hub calls. No sentence-transformers or transformers packages.
 All embedding calls go to Anaconda Desktop's OpenAI-compatible /v1/embeddings.
 """
 
@@ -51,8 +49,7 @@ class DenseRetriever:
     """
     FAISS dense retriever using Anaconda Desktop's local embedding API.
 
-    Replaces the previous sentence-transformers + cross-encoder pipeline.
-    All model calls go to localhost — no external API, no HuggingFace Hub.
+    Embeds the query via the local /embeddings endpoint, then searches the FAISS index.
 
     Parameters
     ----------
@@ -75,7 +72,7 @@ class DenseRetriever:
             api_url or os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
         ).rstrip("/")
         self.embedding_model = (
-            embedding_model or os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B")
+            embedding_model or os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-8B")
         )
         self.top_k = top_k
 
@@ -97,8 +94,7 @@ class DenseRetriever:
         Embed a query using the clinical instruction prefix.
 
         Qwen3-Embedding is an instruction-following model: queries include
-        a task instruction, documents do not. This asymmetry is what replaces
-        the old cross-encoder reranking step.
+        a task instruction, documents do not.
         """
         instructed = QUERY_INSTRUCTION + query
 

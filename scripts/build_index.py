@@ -12,11 +12,11 @@ Usage:
 
 Requires:
     - data/raw/ populated first (run scripts/scraper.py)
-    - Anaconda Desktop running with Qwen3-Embedding-4B loaded as a model server
+    - Anaconda Desktop running with Qwen3-Embedding-8B loaded as a model server
       (default: http://localhost:8080)
 
-All packages from Anaconda main channel — no pip dependencies.
-No Hugging Face Hub calls. Model weights served locally via Anaconda Desktop.
+Chunks scraped text, embeds each chunk via the local /v1/embeddings endpoint,
+and writes a FAISS index.
 """
 
 import json
@@ -49,7 +49,7 @@ DESKTOP_API_BASE = (
     os.getenv("EMBEDDING_API_URL")
     or os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
 )
-EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B")
+EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-8B")
 
 # Chunking — word-based, no tokenizer dependency.
 # Medical text tokenizes at ~2 tokens/word due to specialized terminology.
@@ -78,7 +78,6 @@ def chunk_text(text: str, slug: str, section: str, url: str) -> list[dict]:
     Split text into overlapping word-bounded chunks.
 
     Word-based chunking removes the tokenizer dependency entirely.
-    No Hugging Face or sentence-transformers required.
 
     Returns list of chunk dicts with text + metadata.
     """
@@ -113,8 +112,7 @@ def chunk_text(text: str, slug: str, section: str, url: str) -> list[dict]:
 
 def embed_texts(texts: list[str], api_url: str, model: str) -> np.ndarray:
     """
-    Embed a list of texts using Anaconda Desktop's OpenAI-compatible
-    /v1/embeddings endpoint. No HuggingFace Hub — weights served locally.
+    Embed a list of texts by calling the local /v1/embeddings endpoint.
 
     For Qwen3-Embedding document embeddings no instruction prefix is used
     (asymmetric design: instruction on query side only).
@@ -145,7 +143,7 @@ def embed_texts(texts: list[str], api_url: str, model: str) -> np.ndarray:
                     log.error(
                         f"Cannot reach Anaconda Desktop at {api_url} after 3 attempts. "
                         "Is the model server running? "
-                        "In Desktop: select Qwen3-Embedding-4B → Start Server."
+                        "In Desktop: select Qwen3-Embedding-8B → Start Server."
                     )
                     raise
             except requests.exceptions.HTTPError as e:
@@ -191,7 +189,7 @@ def wait_for_server(api_url: str, timeout: int = 60) -> None:
         time.sleep(3)
     raise TimeoutError(
         f"Desktop server at {api_url} did not become ready within {timeout}s. "
-        "Is Qwen3-Embedding-4B running in Anaconda Desktop?"
+        "Is Qwen3-Embedding-8B running in Anaconda Desktop?"
     )
 
 

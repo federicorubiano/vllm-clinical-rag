@@ -10,7 +10,7 @@
 #   embedder : Qwen3-Embedding-8B/Q8_0        (~12 GB, 4096-dim)
 #
 # Override by exporting INFER_SPEC / EMBED_SPEC, e.g.:
-#   INFER_SPEC=phi-4/Q4_K_M EMBED_SPEC=Qwen3-Embedding-4B/Q4_K_M bash scripts/serve_models.sh
+#   INFER_SPEC=Qwen2.5-7B-Instruct/Q4_K_M EMBED_SPEC=Qwen3-Embedding-0.6B/Q4_K_M bash scripts/serve_models.sh
 #
 # NOTE: `anaconda ai launch` assigns a RANDOM port per server, so the URLs in
 # .env are session-specific. Re-run this script whenever you restart the servers.

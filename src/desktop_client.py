@@ -2,10 +2,8 @@
 desktop_client.py
 -----------------
 Thin wrapper around Anaconda Desktop's local model server chat completions
-endpoint. Uses requests (Anaconda main) — no external API keys, no third-party
-SDKs, no HuggingFace Hub.
-
-Anaconda Desktop exposes an OpenAI-compatible API at localhost:8080.
+endpoint. POSTs to the OpenAI-compatible /chat/completions endpoint using
+requests.
 """
 
 import os
@@ -59,7 +57,7 @@ class DesktopClient:
     HTTP client pointing at Anaconda Desktop's local model server.
     Calls the /v1/chat/completions endpoint via requests.
 
-    Desktop exposes an OpenAI-compatible API — no SDK needed, no external calls.
+    Desktop exposes an OpenAI-compatible /chat/completions endpoint.
 
     Parameters
     ----------
@@ -75,7 +73,7 @@ class DesktopClient:
         self.base_url = (
             base_url or os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
         ).rstrip("/")
-        self.model = model or os.getenv("INFERENCE_MODEL", "Qwen3-8B")
+        self.model = model or os.getenv("INFERENCE_MODEL", "Qwen2.5-14B-Instruct")
         log.info(f"Desktop client → {self.base_url} | model: {self.model}")
 
     def generate(

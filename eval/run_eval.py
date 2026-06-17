@@ -9,8 +9,7 @@ Scores all 5 benchmark queries across five dimensions:
   - Disclaimer     : Is the mandatory medical disclaimer present?
   - Structure      : Is the response well-formatted with headings/steps?
 
-V1 failure mode addressed: self-judging (Mistral scoring its own outputs)
-V2 fix: custom heuristic scoring — no LLM-as-judge, fully reproducible
+Scoring is heuristic (no LLM-as-judge) for reproducibility.
 
 All packages used are available on Anaconda main channel.
 

@@ -4,7 +4,7 @@
 
 A hands-on **guide**: build your own clinical-question RAG system, step by step, grounded in the **Merck Manual Professional Edition** — entirely on Anaconda's secure-by-default stack, running locally on your own machine. By the end you'll have a working, locally-served RAG you can extend.
 
-Powered by Anaconda Desktop local inference (Qwen3-8B) and FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings — no GPU, no cloud, no HuggingFace Hub.
+Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct) and FAISS dense retrieval with Qwen3-Embedding-8B instruction-following embeddings — no GPU, no cloud, no HuggingFace Hub.
 
 > *"If you can't reproduce it, you can't trust it. If you can't trust it, you can't ship it."*
 
@@ -21,7 +21,7 @@ By the end of this guide you will be able to:
 
 1. **Build** a FAISS dense-vector index from a scraped corpus using Anaconda Desktop's local embedding server — no GPU, no HuggingFace Hub.
 2. **Retrieve** the most relevant passages for a question with instruction-following embeddings.
-3. **Generate** grounded, citation-enforced answers from a locally-served Qwen3-8B model.
+3. **Generate** grounded, citation-enforced answers from a locally-served Qwen2.5-14B-Instruct model.
 4. **Serve** the pipeline as a FastAPI endpoint.
 5. **Evaluate** answer quality with a reproducible scoring harness.
 
@@ -42,11 +42,11 @@ By the end of this guide you will be able to:
 
 ## What is FAISS?
 
-[FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers semantic retrieval — finding chunks whose *meaning* matches the query, not just their keywords. Qwen3-Embedding-4B's instruction-following embeddings handle query/document asymmetry natively, so no separate reranking step is needed.
+[FAISS](https://github.com/facebookresearch/faiss) (Facebook AI Similarity Search) is a library for efficient similarity search over dense vectors. Here it powers semantic retrieval — finding chunks whose *meaning* matches the query, not just their keywords. Qwen3-Embedding-8B's instruction-following embeddings handle query/document asymmetry natively, so no separate reranking step is needed.
 
 ## What is Anaconda Desktop?
 
-[Anaconda Desktop](https://www.anaconda.com/products/desktop) runs large language models **locally** on your own machine and exposes them through an OpenAI-compatible HTTP API at `localhost:8080`. You pick a model from Anaconda's curated catalog, click **Start Server**, and the rest of this project talks to it over plain `requests` — no API keys, no third-party SDKs, no HuggingFace Hub calls. Both the embedding model (Qwen3-Embedding-4B) and the chat model (Qwen3-8B) are served this way, which is what makes the whole pipeline reproducible and supply-chain clean.
+[Anaconda Desktop](https://www.anaconda.com/products/desktop) runs large language models **locally** on your own machine and exposes them through an OpenAI-compatible HTTP API at `localhost:8080`. You pick a model from Anaconda's curated catalog, click **Start Server**, and the rest of this project talks to it over plain `requests` — no API keys, no third-party SDKs, no HuggingFace Hub calls. Both the embedding model (Qwen3-Embedding-8B) and the chat model (Qwen2.5-14B-Instruct) are served this way, which is what makes the whole pipeline reproducible and supply-chain clean.
 
 ## What is Evidently AI?
 
@@ -60,9 +60,9 @@ By the end of this guide you will be able to:
 |---|---|---|
 | Hallucinated citations | LLM invented sources | Retrieved chunk metadata enforced in response schema |
 | Outdated corpus | Watermarked PDF, no update path | Live scraper targeting merckmanuals.com |
-| Manual, fragile model serving | hand-run llama-cpp with no standard API | Anaconda Desktop serves Qwen3-8B via an OpenAI-compatible local endpoint — swap models with no code changes |
+| Manual, fragile model serving | hand-run llama-cpp with no standard API | Anaconda Desktop serves Qwen2.5-14B-Instruct via an OpenAI-compatible local endpoint — swap models with no code changes |
 | Self-judging evaluation | Mistral scored its own output | Custom heuristic scoring — no LLM-as-judge, fully reproducible; Evidently available for deeper analysis |
-| BM25 only | Missed semantic similarity | FAISS dense retrieval with Qwen3-Embedding-4B instruction-following embeddings — no separate reranker needed |
+| BM25 only | Missed semantic similarity | FAISS dense retrieval with Qwen3-Embedding-8B instruction-following embeddings — no separate reranker needed |
 | Dependency on external APIs | Reddit V2 roadmap asked about migrating to hosted models (Claude/OpenAI API) | V2 went the opposite direction: fully local via Anaconda Desktop — no external API calls, data never leaves your machine |
 
 ---
@@ -74,12 +74,12 @@ User Query
     │
     ▼
 DenseRetriever
-    └── Qwen3-Embedding-4B (query instruction prefix)
+    └── Qwen3-Embedding-8B (query instruction prefix)
         → FAISS dense search → top-5 chunks
     │   [No cross-encoder — instruction-following asymmetry handles it]
     │
     ▼
-DesktopClient  (Qwen3-8B via Anaconda Desktop local server)
+DesktopClient  (Qwen2.5-14B-Instruct via Anaconda Desktop local server)
     │   System: citation rules + structure enforcement
     │   User:   context blocks + question
     ▼
@@ -89,8 +89,8 @@ Answer + Citations + Medical Disclaimer  [appended to every response]
 
 Runs entirely locally:
     [Anaconda Desktop]
-        ├── Qwen3-Embedding-4B server  → localhost:8080/v1/embeddings
-        └── Qwen3-8B server            → localhost:8080/v1/chat/completions
+        ├── Qwen3-Embedding-8B server  → localhost:8080/v1/embeddings
+        └── Qwen2.5-14B-Instruct server            → localhost:8080/v1/chat/completions
     [Your shell]
         └── FastAPI                    → 0.0.0.0:8000  ← the RAG API
 ```
@@ -107,15 +107,18 @@ Runs entirely locally:
 **Installation prerequisites** (what must be installed — with links):
 - [Anaconda or Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main)
 - [Anaconda CLI (`ana`)](https://anaconda.sh)
-- [Anaconda Desktop](https://www.anaconda.com/products/desktop) — provides the local model server for embeddings and inference
+- [Anaconda Desktop](https://www.anaconda.com/products/desktop) — provides the local model servers for embeddings and inference
+- An **Anaconda account** to sign in to Anaconda Desktop (organization users sign in with their assigned credentials)
 - Python 3.12 (installed by the environment file)
-- ~24–32 GB RAM recommended to run Qwen3-8B locally
+- **~32 GB RAM recommended.** The default models (Qwen2.5-14B-Instruct + Qwen3-Embedding-8B) use roughly 22 GB while both servers run. On a smaller machine, see *Running on less RAM* below.
 
 **External dependencies (classified):**
 - **Anaconda Desktop model server** — *Tier 3 (no fallback)*: required; serves both the embedding and inference models. This is the point of the secure-by-default story, so the dependency is intentional.
 - **Merck Manual website** (scraping step) — *Tier 2 (fallback available)*: a public source; if unreachable, substitute the small sample corpus in `data/raw/`.
 
 > **Runs on Apple Silicon and any CPU-only machine.** The full pipeline — scraping, indexing, API, and UI — runs locally via Anaconda Desktop. No GPU required.
+
+> **Running on less RAM (e.g., 16 GB).** The models are configurable, not hard-coded — point `INFERENCE_MODEL` and `EMBEDDING_MODEL` in `.env` at smaller models from the Anaconda Desktop catalog. The catalog shows each model's RAM requirement and can filter to models compatible with your machine; a smaller chat model (e.g., a 7–8B) plus a lighter embedding model typically fits within 16 GB. Two caveats: (1) smaller models produce lower answer quality, and (2) **if you change the embedding model you must rebuild the index** (`python scripts/build_index.py`) — vectors from a different embedding model aren't comparable. Swapping only the chat model needs no rebuild.
 
 ---
 
@@ -285,7 +288,7 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 
 ## Known issues and workarounds
 
-### ⚠️ Anaconda Desktop: Qwen3-Embedding-4B crashes on chunks > 512 tokens (exit code 133)
+### ⚠️ Anaconda Desktop: Qwen3-Embedding-8B crashes on chunks > 512 tokens (exit code 133)
 
 **Symptom:** `build_index.py` runs successfully for several chunks, then `RemoteDisconnected` error mid-run. Desktop shows "Errored" badge with exit code 133.
 
@@ -324,7 +327,7 @@ After this, `anaconda ai models`, `launch`, and `servers` all work against the r
 
 | Package | Role | Source |
 |---|---|---|
-| **Anaconda Desktop** | Local model server — Qwen3-8B (inference) + Qwen3-Embedding-4B (embeddings). Zero HuggingFace Hub calls; weights served from Anaconda's curated catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
+| **Anaconda Desktop** | Local model server — Qwen2.5-14B-Instruct (inference) + Qwen3-Embedding-8B (embeddings). Zero HuggingFace Hub calls; weights served from Anaconda's curated catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
 | **FAISS** | Vector similarity search (CPU) | Anaconda `main` (faiss-cpu) |
 | **Gradio** | Interactive demo UI | Anaconda `main` |
 | **Evidently AI** | RAG evaluation and monitoring | Anaconda `main` (added Q1 2026) |

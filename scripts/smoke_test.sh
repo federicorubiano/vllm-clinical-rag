@@ -368,7 +368,7 @@ else
         append_err_tail "build_index.py (tail)" "$(printf '%s\n' "$BUILD_LOG" | tail -n 25)"
       fi
     else
-      check SKIP "Index build" "--build set but Desktop embedding server NOT reachable; build_index.py HARD-REQUIRES a live Qwen3-Embedding-4B server (wait_for_server polls /models for ~60s then raises). Missing:${missing}"
+      check SKIP "Index build" "--build set but Desktop embedding server NOT reachable; build_index.py HARD-REQUIRES a live embedding server (start it with: bash scripts/serve_models.sh) (wait_for_server polls /models for ~60s then raises). Missing:${missing}"
     fi
   else
     check SKIP "Index missing" "missing:${missing}. Run scraper then build WITH the embedding server up: ${PY_LABEL} scripts/scraper.py && ${PY_LABEL} scripts/build_index.py  (or re-run this script with --build). Downstream API/eval steps will be skipped."
@@ -462,7 +462,7 @@ header "(f) test_api.py connectivity test"
 if [ "$API_READY" -ne 1 ]; then
   check SKIP "test_api.py" "skipped because FastAPI is not ready (see step e)"
 elif [ "$DESKTOP_REACHABLE" -ne 1 ]; then
-  check SKIP "test_api.py" "FastAPI is up but the Anaconda Desktop inference server is NOT reachable (step b) — /query cannot succeed. Start Qwen3-8B + Qwen3-Embedding-4B in Anaconda Desktop, then re-run."
+  check SKIP "test_api.py" "FastAPI is up but the Anaconda Desktop inference server is NOT reachable (step b) — /query cannot succeed. Start both model servers (bash scripts/serve_models.sh), then re-run."
 else
   TEST_OUT="$(API_URL="${API_URL}" run_py test_api.py --url "${API_URL}" 2>&1)"
   TEST_RC=$?
@@ -470,7 +470,7 @@ else
   if [ $TEST_RC -eq 0 ]; then
     check PASS "test_api.py" "rc=0 (all connectivity tests passed)"
   else
-    check FAIL "test_api.py" "rc=${TEST_RC} — see error tail (if /query failed, confirm the Desktop model server is actually serving Qwen3-8B)"
+    check FAIL "test_api.py" "rc=${TEST_RC} — see error tail (if /query failed, confirm the chat model server is actually running)"
     append_err_tail "test_api.py (tail)" "$TEST_TAIL"
   fi
   echo "  --- test_api.py output (tail) ---"
@@ -498,7 +498,7 @@ if [ "$API_READY" -ne 1 ]; then
   EVIDENTLY_VERDICT="skipped (API not ready)"
   PIPELINE_VERDICT="skipped (API not ready)"
 elif [ "$DESKTOP_REACHABLE" -ne 1 ]; then
-  check SKIP "run_eval.py" "FastAPI is up but the Anaconda Desktop inference/embedding server is NOT reachable (step b) — every /query would return no_response and the report would render over all-zero data. Start Qwen3-8B + Qwen3-Embedding-4B, then re-run."
+  check SKIP "run_eval.py" "FastAPI is up but the Anaconda Desktop inference/embedding server is NOT reachable (step b) — every /query would return no_response and the report would render over all-zero data. Start both model servers (bash scripts/serve_models.sh), then re-run."
   EVIDENTLY_VERDICT="skipped (Desktop not reachable)"
   PIPELINE_VERDICT="skipped (Desktop not reachable)"
 else
@@ -645,7 +645,7 @@ echo "Repo root : ${REPO_ROOT}"
 echo "Date      : $(date 2>/dev/null)"
 echo "Python    : ${PY_VER}  [${PY_LABEL} via ${PY_SOURCE}]"
 echo "Conda     : ${CONDA_VER}"
-echo "Desktop   : $([ "$DESKTOP_REACHABLE" -eq 1 ] && echo "reachable (${DESKTOP_API_URL%/}/models)" || echo "NOT reachable — Qwen3-8B / Qwen3-Embedding-4B likely not started")"
+echo "Desktop   : $([ "$DESKTOP_REACHABLE" -eq 1 ] && echo "reachable (${DESKTOP_API_URL%/}/models)" || echo "NOT reachable — run: bash scripts/serve_models.sh")"
 echo ""
 echo "--- Result tally ---"
 echo "PASS=${PASS_COUNT}  FAIL=${FAIL_COUNT}  SKIP=${SKIP_COUNT}  WARN=${WARN_COUNT}"

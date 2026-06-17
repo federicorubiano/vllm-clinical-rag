@@ -49,12 +49,12 @@ async def lifespan(app: FastAPI):
         faiss_path=os.getenv("FAISS_INDEX_PATH", "data/index/merck.faiss"),
         chunks_path=os.getenv("CHUNK_METADATA_PATH", "data/index/chunks.json"),
         api_url=os.getenv("EMBEDDING_API_URL", _desktop),
-        embedding_model=os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B"),
+        embedding_model=os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-8B"),
         top_k=int(os.getenv("TOP_K", 5)),
     )
     llm_client = DesktopClient(
         base_url=os.getenv("INFERENCE_API_URL", _desktop),
-        model=os.getenv("INFERENCE_MODEL", "Qwen3-8B"),
+        model=os.getenv("INFERENCE_MODEL", "Qwen2.5-14B-Instruct"),
     )
     log.info("API ready.")
     yield
@@ -67,8 +67,8 @@ app = FastAPI(
     title="Clinical Knowledge API",
     description=(
         "Answers clinical queries grounded in the Merck Manual Professional Edition. "
-        "Powered by Anaconda Desktop local inference (Qwen3-8B), FAISS dense retrieval, "
-        "and Qwen3-Embedding-4B instruction-following embeddings. "
+        "Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct), FAISS dense retrieval, "
+        "and Qwen3-Embedding-8B instruction-following embeddings. "
         "Fully self-hosted — no external APIs or HuggingFace Hub calls. "
         "Built with Anaconda CLI + Anaconda Desktop. For educational and demonstration purposes only."
     ),
