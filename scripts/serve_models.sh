@@ -2,7 +2,7 @@
 #
 # serve_models.sh — launch the two Anaconda Desktop model servers (chat +
 # embedder) via the `anaconda ai` CLI and write their (ephemeral) URLs + names
-# into .env. This dogfoods the `anaconda ai` server stack and is the supported
+# into .env. This uses the `anaconda ai` server stack — the supported
 # way to run TWO models at once (the Desktop UI serves only one at a time).
 #
 # Defaults to the recommended pair for a 32 GB machine:

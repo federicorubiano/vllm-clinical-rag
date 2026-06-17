@@ -8,7 +8,7 @@ Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct) and FAISS den
 
 > *"If you can't reproduce it, you can't trust it. If you can't trust it, you can't ship it."*
 
-Every model weight enters through Anaconda's curated catalog — auditable provenance from install to inference, zero HuggingFace Hub calls at runtime. This is what **secure by default** looks like end to end:
+Every model weight enters through Anaconda's curated catalog — auditable provenance from install to inference. This is what **secure by default** looks like end to end:
 `ana login` → `conda env create` → open Anaconda Desktop → run locally
 
 ## Audience
@@ -52,7 +52,7 @@ By the end of this guide you will be able to:
 
 ## What is Evidently AI?
 
-[Evidently AI](https://www.evidentlyai.com) is an open-source library for evaluating and monitoring ML models and LLM pipelines. Here the evaluation harness computes reproducible heuristic scores (no LLM-as-judge) and renders them through an Evidently **`DataSummaryPreset`** report — `python eval/run_eval.py --report` builds `eval/report.html` with per-metric statistics across the benchmark queries. Installed from the Anaconda `main` channel (added Q1 2026) — no pip required.
+[Evidently AI](https://www.evidentlyai.com) is an open-source library for evaluating and monitoring ML models and LLM pipelines. Here the evaluation harness computes reproducible heuristic scores (no LLM-as-judge) and renders them through an Evidently **`DataSummaryPreset`** report — `python eval/run_eval.py --report` builds `eval/report.html` with per-metric statistics across the benchmark queries. Available on the Anaconda `main` channel (added Q1 2026).
 
 ---
 
@@ -65,7 +65,7 @@ User Query
 DenseRetriever
     └── Qwen3-Embedding-8B (query instruction prefix)
         → FAISS dense search → top-5 chunks
-    │   [No cross-encoder — instruction-following asymmetry handles it]
+    │   [instruction-following embeddings rank relevance directly]
     │
     ▼
 DesktopClient  (Qwen2.5-14B-Instruct via Anaconda Desktop local server)
@@ -165,7 +165,7 @@ ana login
 
 **✅ Checkpoint:** `ana whoami` prints your Anaconda username.
 
-`faiss-cpu`, `gradio`, `evidently`, `fastapi`, and all supporting packages are on the Anaconda `main` channel. The environment file handles all installation — no pip commands, no HuggingFace packages.
+`faiss-cpu`, `gradio`, `evidently`, `fastapi`, and all supporting packages are on the Anaconda `main` channel. The environment file handles the full install — every package comes from `main`.
 
 ### Step 2: Create the environment
 
@@ -198,7 +198,7 @@ This launches both models and writes their URLs into `.env` (`EMBEDDING_API_URL`
 > anaconda ai servers --json    # read each server's openai_url → put in .env
 > ```
 
-> No GPU required locally. Model weights come once from Anaconda's curated catalog — no HuggingFace Hub calls at runtime.
+> No GPU required locally. Model weights come once from Anaconda's curated catalog.
 
 **✅ Checkpoint:** `anaconda ai servers` lists **both** as `running`, and `.env`'s `EMBEDDING_API_URL` / `INFERENCE_API_URL` now point at their two ports.
 
@@ -322,16 +322,16 @@ After this, `anaconda ai models`, `launch`, and `servers` all work against the r
 
 ---
 
-## High-value packages showcased
+## High-value AI packages showcased
 
 | Package | Role | Source |
 |---|---|---|
-| **Anaconda Desktop** | Local model server — Qwen2.5-14B-Instruct (inference) + Qwen3-Embedding-8B (embeddings). Zero HuggingFace Hub calls; weights served from Anaconda's curated catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
+| **Anaconda Desktop** | Local model server — Qwen2.5-14B-Instruct (inference) + Qwen3-Embedding-8B (embeddings). Weights served from Anaconda's curated catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
 | **FAISS** | Vector similarity search (CPU) | Anaconda `main` (faiss-cpu) |
 | **Gradio** | Interactive demo UI | Anaconda `main` |
 | **Evidently AI** | RAG evaluation and monitoring | Anaconda `main` (added Q1 2026) |
 | **FastAPI** | Local REST API | Anaconda `main` |
-| **requests** | All model API calls (embeddings + chat completions) — no SDKs | Anaconda `main` |
+| **requests** | All model API calls (embeddings + chat completions) over plain HTTP | Anaconda `main` |
 
 ---
 

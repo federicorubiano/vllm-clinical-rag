@@ -69,7 +69,7 @@ app = FastAPI(
         "Answers clinical queries grounded in the Merck Manual Professional Edition. "
         "Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct), FAISS dense retrieval, "
         "and Qwen3-Embedding-8B instruction-following embeddings. "
-        "Fully self-hosted — no external APIs or HuggingFace Hub calls. "
+        "Fully self-hosted — all inference runs locally through Anaconda Desktop. "
         "Built with Anaconda CLI + Anaconda Desktop. For educational and demonstration purposes only."
     ),
     version="2.0.0",

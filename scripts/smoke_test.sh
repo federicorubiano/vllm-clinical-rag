@@ -14,7 +14,7 @@
 #     Evidently log line — the report renders even over all-zero data)
 #   - Reports versions
 #
-# It NEVER deletes anything, NEVER calls pip, and NEVER touches HuggingFace.
+# It NEVER deletes anything — it only reads files, checks the env, and pings the local servers.
 # build_index.py is only run if you explicitly pass --build (and only then
 # with the embedding server up). The only file this script removes is a
 # mktemp log it created itself.
