@@ -42,7 +42,13 @@ REPO_ROOT="$(pwd)"
 # Grounded constants (from recon — do not invent).
 # ---------------------------------------------------------------------------
 EXPECTED_CONDA_ENV="anaconda-clinical-rag"
-DESKTOP_API_URL="${DESKTOP_API_URL:-http://localhost:8080/v1}"   # Anaconda Desktop server
+DESKTOP_API_URL="${DESKTOP_API_URL:-http://localhost:8080/v1}"   # fallback only
+# The two model servers (chat + embedder) are launched by serve_models.sh via
+# `anaconda ai launch`, which assigns RANDOM ports written into .env. Read them
+# here — do NOT assume :8080.
+_env_val() { [ -f ".env" ] && sed -n "s/^$1=//p" ".env" | tail -n 1; }
+EMBEDDING_API_URL="$(_env_val EMBEDDING_API_URL)"; EMBEDDING_API_URL="${EMBEDDING_API_URL:-$DESKTOP_API_URL}"
+INFERENCE_API_URL="$(_env_val INFERENCE_API_URL)"; INFERENCE_API_URL="${INFERENCE_API_URL:-$DESKTOP_API_URL}"
 API_HOST="0.0.0.0"
 API_PORT="8000"
 API_URL="http://localhost:${API_PORT}"                            # FastAPI backend
@@ -297,24 +303,24 @@ fi
 # ===========================================================================
 # (b) Anaconda Desktop model server reachable (informational, but GATES f/g/build)
 # ===========================================================================
-header "(b) Anaconda Desktop model server (localhost:8080)"
+header "(b) Model servers reachable (chat + embedder)"
 
+# Probe BOTH OpenAI-compatible servers at the ports recorded in .env. -f means a
+# 401/404/5xx does NOT count as reachable. Both must be up for /query to work,
+# so this gates steps (d)/(f)/(g).
 DESKTOP_REACHABLE=0
 if command -v curl >/dev/null 2>&1; then
-  # Hit the OpenAI-compatible /models endpoint under the base URL.
-  # -f makes curl fail (rc!=0) on HTTP >= 400, so a 401/404/500 from a
-  # half-up server does NOT count as reachable. This matters because this
-  # flag gates the --build path (step d): build_index.py's wait_for_server()
-  # only treats a 200 from /models as ready, so we match that precondition.
-  DESKTOP_PROBE_URL="${DESKTOP_API_URL%/}/models"
-  if curl -fs -o /dev/null --max-time 5 "${DESKTOP_PROBE_URL}"; then
+  emb_ok=0; inf_ok=0
+  curl -fs -o /dev/null --max-time 5 "${EMBEDDING_API_URL%/}/models" && emb_ok=1
+  curl -fs -o /dev/null --max-time 5 "${INFERENCE_API_URL%/}/models" && inf_ok=1
+  if [ "$emb_ok" -eq 1 ] && [ "$inf_ok" -eq 1 ]; then
     DESKTOP_REACHABLE=1
-    check PASS "Desktop server reachable" "200 from ${DESKTOP_PROBE_URL} (does NOT confirm Qwen3-8B + Qwen3-Embedding-4B are both loaded)"
+    check PASS "Both model servers reachable" "embed=${EMBEDDING_API_URL}  chat=${INFERENCE_API_URL}"
   else
-    check WARN "Desktop server NOT reachable" "no 2xx from ${DESKTOP_PROBE_URL} — start Qwen3-8B AND Qwen3-Embedding-4B servers in Anaconda Desktop (demo can't generate/embed without them)"
+    check WARN "Model servers NOT both reachable" "embed_ok=${emb_ok} chat_ok=${inf_ok} — run: bash scripts/serve_models.sh (launches both via 'anaconda ai' and rewrites .env)"
   fi
 else
-  check WARN "Desktop server" "curl not found; skipped reachability probe of ${DESKTOP_API_URL}"
+  check WARN "Model servers" "curl not found; skipped reachability probe"
 fi
 
 # ===========================================================================
