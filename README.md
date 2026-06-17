@@ -106,7 +106,16 @@ Runs entirely locally:
 
 > **Runs on Apple Silicon and any CPU-only machine.** The full pipeline — scraping, indexing, API, and UI — runs locally via Anaconda Desktop. No GPU required.
 
-> **Running on less RAM (e.g., 16 GB).** The models are configurable, not hard-coded — point `INFERENCE_MODEL` and `EMBEDDING_MODEL` in `.env` at smaller models from the Anaconda Desktop catalog. The catalog shows each model's RAM requirement and can filter to models compatible with your machine; a smaller chat model (e.g., a 7–8B) plus a lighter embedding model typically fits within 16 GB. Two caveats: (1) smaller models produce lower answer quality, and (2) **if you change the embedding model you must rebuild the index** (`python scripts/build_index.py`) — vectors from a different embedding model aren't comparable. Swapping only the chat model needs no rebuild.
+> **Running on less RAM (e.g., 16 GB).** The models are configurable, not hard-coded — point `INFERENCE_MODEL` and `EMBEDDING_MODEL` in `.env` at smaller models from the Anaconda Desktop catalog (run `anaconda ai models <name>` to see each model's RAM use). A lighter pairing that fits comfortably in 16 GB:
+>
+> | Role | Model | RAM (Q4_K_M) |
+> |---|---|---|
+> | Chat | `Qwen2.5-7B-Instruct` | ~5.2 GB |
+> | Embedder | `Qwen3-Embedding-0.6B` | ~0.6 GB |
+>
+> Two caveats: (1) smaller models produce lower answer quality, and (2) **if you change the embedding model you must rebuild the index** (`python scripts/build_index.py`) — a different embedder produces a different vector dimension, so the existing index can't be reused. Swapping only the chat model needs no rebuild.
+>
+> *(This lighter pairing is a starting suggestion, not yet benchmarked against the full eval; the default 14B/8B profile is the tested one.)*
 
 ---
 
@@ -170,30 +179,9 @@ cp .env.example .env
 # Edit .env — set INFERENCE_MODEL / EMBEDDING_MODEL to match your Desktop servers
 ```
 
-### Step 4: Scrape the Merck Manual and build the index
+### Step 4: Start both model servers (chat + embedder, at once)
 
-*Start state: your conda env is activated, `.env` is configured (Steps 2–3), and the embedding server is running in Anaconda Desktop (Step 5).*
-
-```bash
-python scripts/scraper.py      # ~5 min — respects robots.txt 5s crawl delay
-python scripts/build_index.py  # ~10 min — embeds all chunks via Anaconda Desktop
-```
-
-This writes to `data/raw/` and `data/index/`. No corpus file to download — anyone can reproduce it.
-
-**✅ Checkpoint:** `data/index/merck.faiss` and `data/index/chunks.json` exist, and `build_index.py` prints a chunk count. Expected output (your numbers may vary):
-
-```text
-Scraped 7 topics → data/raw/
-Chunked + embedded 156 passages
-Wrote data/index/merck.faiss (156 vectors)
-```
-
-> ℹ️ The embedding server must be the one running in Anaconda Desktop for this step (see Step 5). If you hit an `exit code 133` crash, see **Known issues** below — keep `CHUNK_SIZE_WORDS` at 200.
-
-### Step 5: Start both model servers (chat + embedder, at once)
-
-A live query needs **two models serving at the same time** — the embedder (to encode your question) and the chat model (to write the grounded answer). Anaconda Desktop's UI runs only one server at a time, so use the `anaconda ai` CLI, which gives each server its own port. The helper does it in one step:
+A live query needs **two models serving at the same time** — the embedder (to encode your question) and the chat model (to write the grounded answer), and the indexing step (Step 5) needs the embedder too. Anaconda Desktop's UI runs only one server at a time, so use the `anaconda ai` CLI, which gives each server its own port. The helper does it in one step:
 
 ```bash
 bash scripts/serve_models.sh
@@ -212,7 +200,28 @@ This launches both models and writes their URLs into `.env` (`EMBEDDING_API_URL`
 
 **✅ Checkpoint:** `anaconda ai servers` lists **both** as `running`, and `.env`'s `EMBEDDING_API_URL` / `INFERENCE_API_URL` now point at their two ports.
 
-> ℹ️ **Run Step 5 before Step 4** — the indexing step needs the embedding server up. And if `anaconda ai` ever errors with a config/port (or `401`) message, point it at the running Desktop backend once: `anaconda ai config --backend anaconda-desktop -y`.
+> ℹ️ If `anaconda ai` errors with a config/port (or `401`) message, point it at the running Desktop backend once: `anaconda ai config --backend anaconda-desktop -y`.
+
+### Step 5: Scrape the Merck Manual and build the index
+
+*Start state: your conda env is activated, `.env` is configured (Steps 2–3), and both model servers are running (Step 4).*
+
+```bash
+python scripts/scraper.py      # ~5 min — respects robots.txt 5s crawl delay
+python scripts/build_index.py  # ~10 min — embeds all chunks via Anaconda Desktop
+```
+
+This writes to `data/raw/` and `data/index/`. No corpus file to download — anyone can reproduce it.
+
+**✅ Checkpoint:** `data/index/merck.faiss` and `data/index/chunks.json` exist, and `build_index.py` prints a chunk count. Expected output (your numbers may vary):
+
+```text
+Scraped 7 topics → data/raw/
+Chunked + embedded 156 passages
+Wrote data/index/merck.faiss (156 vectors)
+```
+
+> ℹ️ Indexing uses the embedding server you started in Step 4. If you hit an `exit code 133` crash, see **Known issues** below — keep `CHUNK_SIZE_WORDS` at 200.
 
 ### Step 6: Start the API
 
@@ -264,7 +273,7 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 ## Troubleshooting
 
 **Connection refused to `localhost:8080`**
-→ The Anaconda Desktop model server isn't running. Open Desktop and **Start Server** for the model you need (embedding for Step 4, inference for Steps 6–8).
+→ The model servers aren't running (or were restarted, so the ports in `.env` are stale). Bring them back up and re-wire `.env` with `bash scripts/serve_models.sh` (Step 4).
 
 **FAISS index not found**
 → Run `python scripts/build_index.py` to generate `data/index/merck.faiss` (with the embedding server running).
@@ -307,7 +316,7 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 anaconda ai config --backend anaconda-desktop -y
 ```
 
-After this, `anaconda ai models`, `launch`, and `servers` all work against the running Desktop backend — which is exactly what makes the two-simultaneous-servers setup in Step 5 (and `scripts/serve_models.sh`) possible. No more manual model-swapping.
+After this, `anaconda ai models`, `launch`, and `servers` all work against the running Desktop backend — which is exactly what makes the two-simultaneous-servers setup in Step 4 (and `scripts/serve_models.sh`) possible. No more manual model-swapping.
 
 ---
 
