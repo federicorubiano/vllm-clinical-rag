@@ -1,6 +1,6 @@
 # 🏥 Clinical Knowledge RAG — Anaconda Desktop + FAISS + FastAPI
 
-> **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Status:** In development (pending end-to-end test) | **Estimated time:** 60–90 minutes
+> **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Status:** Tested end-to-end | **Last tested:** 2026-06-17 | **Estimated time:** 60–90 minutes
 
 A hands-on **guide**: build your own clinical-question RAG system, step by step, grounded in the **Merck Manual Professional Edition** — running entirely on your own machine. By the end you'll have a working, locally-served RAG you can extend.
 
@@ -25,8 +25,10 @@ By the end of this guide you will be able to:
 4. **Serve** the pipeline as a FastAPI endpoint.
 5. **Evaluate** answer quality with a reproducible scoring harness.
 
-![Gradio UI screenshot](screenshots/gradio-ui.png)
-<!-- TODO: run `python src/gradio_app.py`, open http://localhost:7860, ask a benchmark query, save to screenshots/gradio-ui.png -->
+<!-- Gradio UI screenshot — pending capture (avoids a broken image until it exists).
+     To add it: run `python src/gradio_app.py`, open http://localhost:7860, ask a
+     benchmark query, save the shot to screenshots/gradio-ui.png, then restore:
+     ![Gradio UI screenshot](screenshots/gradio-ui.png) -->
 
 ---
 
