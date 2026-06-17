@@ -131,6 +131,7 @@ anaconda-clinical-rag/
 ├── scripts/
 │   ├── scraper.py          # Merck Manual web scraper (robots.txt compliant)
 │   ├── build_index.py      # Builds FAISS index + chunk metadata from scraped text
+│   ├── serve_models.sh     # Launch both Anaconda Desktop model servers + wire .env
 │   └── smoke_test.sh       # End-to-end, non-destructive setup verification
 ├── eval/
 │   └── run_eval.py         # Heuristic evaluation harness (5 benchmark queries)
@@ -199,20 +200,28 @@ Wrote data/index/merck.faiss (156 vectors)
 
 > ℹ️ The embedding server must be the one running in Anaconda Desktop for this step (see Step 5). If you hit an `exit code 133` crash, see **Known issues** below — keep `CHUNK_SIZE_WORDS` at 200.
 
-### Step 5: Start model servers in Anaconda Desktop
+### Step 5: Start both model servers (chat + embedder, at once)
 
-Open Anaconda Desktop and start two model servers:
+A live query needs **two models serving at the same time** — the embedder (to encode your question) and the chat model (to write the grounded answer). Anaconda Desktop's UI runs only one server at a time, so use the `anaconda ai` CLI, which gives each server its own port. The helper does it in one step:
 
-1. **Embedding model** — find `Qwen3-Embedding-4B` in the model catalog → click **Start Server**
-2. **Inference model** — find `Qwen3-8B` → click **Start Server**
+```bash
+bash scripts/serve_models.sh
+```
 
-Both will be available at `localhost:8080`. The `.env` file controls which model is used for each role — no code changes needed to swap models.
+This launches both models and writes their URLs into `.env` (`EMBEDDING_API_URL` / `INFERENCE_API_URL`). It defaults to the recommended 32 GB pair — **Qwen2.5-14B-Instruct** (chat) + **Qwen3-Embedding-8B** (embeddings) — and you can override with `INFER_SPEC` / `EMBED_SPEC`. Re-run it whenever you restart the servers (ports are assigned dynamically).
 
-> No GPU required locally. Model weights are downloaded once through Anaconda Desktop's curated catalog — no HuggingFace Hub calls at runtime.
+> Equivalent manual steps:
+> ```bash
+> anaconda ai launch Qwen2.5-14B-Instruct/Q4_K_M --detach
+> anaconda ai launch Qwen3-Embedding-8B/Q8_0 --detach
+> anaconda ai servers --json    # read each server's openai_url → put in .env
+> ```
 
-**✅ Checkpoint:** `curl http://localhost:8080/health` returns `{"status":"ok"}` (or the Desktop UI shows the server as **Running**).
+> No GPU required locally. Model weights come once from Anaconda's curated catalog — no HuggingFace Hub calls at runtime.
 
-> ℹ️ Desktop currently serves one model at a time. Run the **embedding** model while building the index (Step 4), then switch to the **inference** model for Steps 6–8. See **Known issues** for why.
+**✅ Checkpoint:** `anaconda ai servers` lists **both** as `running`, and `.env`'s `EMBEDDING_API_URL` / `INFERENCE_API_URL` now point at their two ports.
+
+> ℹ️ **Run Step 5 before Step 4** — the indexing step needs the embedding server up. And if `anaconda ai` ever errors with a config/port (or `401`) message, point it at the running Desktop backend once: `anaconda ai config --backend anaconda-desktop -y`.
 
 ### Step 6: Start the API
 
@@ -290,28 +299,24 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 
 | Fix | How | Status |
 |---|---|---|
-| Use `anaconda ai` CLI to pass `--ctx-size 2048` | Launches the server with a smaller context window — reduces KV cache and eliminates multi-pass batching for our chunk sizes | Blocked by `anaconda ai` 401 auth error (see below) |
+| Launch the embedder with a smaller context window via `anaconda ai` | Would reduce KV cache and avoid the multi-pass batching that triggers the crash | `anaconda ai` now works (backend fix below), but `launch` doesn't yet expose a `--ctx-size` flag — so keep `CHUNK_SIZE_WORDS=200` |
 | Update Anaconda Desktop | The multi-pass LAST-pooling bug should be fixed in a future Desktop release | Report via Desktop → Support |
 | Increase `TOP_K` | `TOP_K=8` in `.env` partially compensates for the smaller chunk size | ✅ Available now |
 
 ---
 
-### ⚠️ `anaconda ai` plugin: 401 Unauthorized on `localhost:8001`
+### ✅ `anaconda ai` "401 / API Port not found" on `localhost:8001` — RESOLVED
 
-**Symptom:** `anaconda ai` commands return `HTTPError: 401 Client Error: Unauthorized for url: http://localhost:8001/api/models`.
+**Symptom:** `anaconda ai` commands fail with `AINavigatorConfigError: The API Port was not found in the application config file` (or a `401 Unauthorized` from `localhost:8001`).
 
-**Root cause:** The `anaconda ai` plugin authenticates against Desktop's internal backend at port 8001. The auth token is not being passed correctly — likely a keyring or site configuration issue.
+**Root cause:** Not an auth bug. The CLI was defaulting to the `ai-navigator` backend, which has no configured port — while the backend actually running (as part of Anaconda Desktop) is `anaconda-desktop`, on `localhost:8001`. It was a **backend-selection** mismatch.
 
-**Workaround:** Use Anaconda Desktop UI to manage model servers until resolved.
-
-**Diagnosis steps:**
+**Fix (one time):**
 ```bash
-export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
-anaconda ai config
-anaconda sites list
+anaconda ai config --backend anaconda-desktop -y
 ```
 
-**Why this matters:** Fixing the 401 would allow `anaconda ai launch` to run the embedding and inference models on **separate ports simultaneously** — currently Desktop's UI only supports one active server at a time, requiring a manual swap between embedding and inference model.
+After this, `anaconda ai models`, `launch`, and `servers` all work against the running Desktop backend — which is exactly what makes the two-simultaneous-servers setup in Step 5 (and `scripts/serve_models.sh`) possible. No more manual model-swapping.
 
 ---
 
