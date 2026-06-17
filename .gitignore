@@ -56,3 +56,4 @@ logs/
 # Internal agent/process notes — never publish to the repo or the Sandbox fork
 HANDOFF.md
 HANDOFF*.md
+COMPLIANCE_REPORT.md
