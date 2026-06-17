@@ -108,7 +108,7 @@ Runs entirely locally:
 - [Anaconda or Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/main)
 - [Anaconda CLI (`ana`)](https://anaconda.sh)
 - [Anaconda Desktop](https://www.anaconda.com/products/desktop) — provides the local model server for embeddings and inference
-- Python 3.11 (installed by the environment file)
+- Python 3.12 (installed by the environment file)
 - ~24–32 GB RAM recommended to run Qwen3-8B locally
 
 **External dependencies (classified):**

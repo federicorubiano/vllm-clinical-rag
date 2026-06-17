@@ -47,7 +47,7 @@ variables:
 
 # ── Packages (mirrors environment.yml for Anaconda Project compatibility) ──────
 packages:
-  - python=3.11
+  - python=3.12
   - requests==2.34.2
   - beautifulsoup4==4.15.0
   - lxml==6.1.0
