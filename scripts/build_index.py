@@ -41,8 +41,14 @@ FAISS_PATH    = INDEX_DIR / "merck.faiss"
 CHUNKS_PATH   = INDEX_DIR / "chunks.json"
 MANIFEST_PATH = RAW_DIR / "manifest.json"
 
-# Anaconda Desktop local model server
-DESKTOP_API_BASE = os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
+# Embedding server (indexing only needs the embedding model). Prefer the
+# role-specific EMBEDDING_API_URL — with `anaconda ai launch` each model gets its
+# own random port (written to .env by serve_models.sh), so DESKTOP_API_URL's
+# :8080 default is just a last-resort fallback.
+DESKTOP_API_BASE = (
+    os.getenv("EMBEDDING_API_URL")
+    or os.getenv("DESKTOP_API_URL", "http://localhost:8080/v1")
+)
 EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-4B")
 
 # Chunking — word-based, no tokenizer dependency.
