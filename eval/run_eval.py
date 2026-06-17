@@ -75,13 +75,13 @@ BENCHMARK_QUERIES = [
 
 # ── API client ────────────────────────────────────────────────────────────────
 
-def call_api(api_url: str, question: str, max_tokens: int = 512) -> dict | None:
+def call_api(api_url: str, question: str, max_tokens: int = 320) -> dict | None:
     """Call the Clinical Knowledge API and return the parsed response."""
     try:
         resp = requests.post(
             f"{api_url}/query",
             json={"question": question, "max_tokens": max_tokens, "temperature": 0.1},
-            timeout=180,   # 14B on Metal + long RAG prompts can take >90s/query
+            timeout=240,   # 14B on Metal + long RAG prompts can take minutes/query
         )
         resp.raise_for_status()
         return resp.json()

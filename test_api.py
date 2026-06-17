@@ -60,11 +60,12 @@ def main(api_url: str):
     # ── 2. Query test ─────────────────────────────────────────────────────────
     print("\n[2] Query test")
     TEST_QUESTION = "What is the protocol for managing sepsis in a critical care unit?"
+    data = None   # ensure it's defined even if the request below times out / errors
     try:
         r = requests.post(
             f"{api_url}/query",
             json={"question": TEST_QUESTION, "max_tokens": 256},
-            timeout=90,
+            timeout=240,
         )
         data = r.json()
         all_passed &= check("HTTP 200", r.status_code == 200, f"got {r.status_code}")
