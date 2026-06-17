@@ -18,8 +18,7 @@ dependencies:
   - lxml==6.1.0
 
   # ── Retrieval ──────────────────────────────────────────────────────────────
-  # sentence-transformers/transformers removed — embeddings served locally by
-  # Anaconda Desktop (Qwen3-Embedding-4B). No HuggingFace Hub calls.
+  # Embeddings are served by Anaconda Desktop (Qwen3-Embedding-8B), not installed here.
   - faiss-cpu==1.14.1          # CPU build — works on Mac/Linux without an NVIDIA GPU
 
   # ── API layer ──────────────────────────────────────────────────────────────
@@ -40,6 +39,5 @@ dependencies:
   - tqdm==4.68.2
   - rich==15.0.0
 
-  # No pip dependencies. No HuggingFace packages.
-  # All model inference (embeddings + generation) goes through Anaconda Desktop
-  # at localhost:8080 — fully audited, supply-chain clean.
+  # All packages come from the Anaconda main channel. Model inference
+  # (embeddings + generation) is served by Anaconda Desktop.

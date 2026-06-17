@@ -14,7 +14,7 @@ conda activate anaconda-clinical-rag
 python scripts/scraper.py
 ```
 
-This will populate `data/raw/` with clean text files for 16 clinical topics
+This will populate `data/raw/` with clean text files for 7 clinical topics
 across 5 domains (Critical Care, Gastrointestinal, Neurology, Dermatology,
 Orthopedics), respecting the site's 5-second crawl delay.
 
@@ -31,10 +31,10 @@ This populates `data/index/` with the vector store and chunk metadata.
 | Domain | Topics |
 |---|---|
 | Critical Care | Sepsis & Septic Shock, Shock, ARDS |
-| Gastrointestinal | Appendicitis, Acute Abdomen, Peritonitis |
-| Neurology | Traumatic Brain Injury, Concussion, Intracranial Hemorrhage |
-| Dermatology | Alopecia Areata, Androgenetic Alopecia, Telogen Effluvium |
-| Orthopedics | Fractures, Sprains & Strains, Compartment Syndrome, Wilderness Medicine |
+| Gastrointestinal | Appendicitis |
+| Neurology | Traumatic Brain Injury |
+| Dermatology | Alopecia Areata |
+| Orthopedics | Compartment Syndrome |
 
 ## Legal note
 

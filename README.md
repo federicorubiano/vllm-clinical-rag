@@ -2,9 +2,9 @@
 
 > **Owner:** Federico Rubiano ([@federicorubiano](https://github.com/federicorubiano)) | **Status:** In development (pending end-to-end test) | **Estimated time:** 60–90 minutes
 
-A hands-on **guide**: build your own clinical-question RAG system, step by step, grounded in the **Merck Manual Professional Edition** — entirely on Anaconda's secure-by-default stack, running locally on your own machine. By the end you'll have a working, locally-served RAG you can extend.
+A hands-on **guide**: build your own clinical-question RAG system, step by step, grounded in the **Merck Manual Professional Edition** — running entirely on your own machine. By the end you'll have a working, locally-served RAG you can extend.
 
-Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct) and FAISS dense retrieval with Qwen3-Embedding-8B instruction-following embeddings — no GPU, no cloud, no HuggingFace Hub.
+Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct) and FAISS dense retrieval with Qwen3-Embedding-8B instruction-following embeddings — all running locally on your own machine, no GPU required.
 
 > *"If you can't reproduce it, you can't trust it. If you can't trust it, you can't ship it."*
 
@@ -13,13 +13,13 @@ Every model weight enters through Anaconda's curated catalog — auditable prove
 
 ## Audience
 
-Python developers and data scientists who want to build a retrieval-augmented generation (RAG) system end to end using only Anaconda's curated, secure-by-default stack. No prior RAG experience required. The techniques apply to any domain that needs grounded, citable answers over a document corpus — demonstrated here on a clinical/healthcare knowledge base.
+Python developers and data scientists who want to build a retrieval-augmented generation (RAG) system end to end and keep every part of it running locally. No prior RAG experience required. The techniques apply to any domain that needs grounded, citable answers over a document corpus — demonstrated here on a clinical/healthcare knowledge base.
 
 ## What you'll learn
 
 By the end of this guide you will be able to:
 
-1. **Build** a FAISS dense-vector index from a scraped corpus using Anaconda Desktop's local embedding server — no GPU, no HuggingFace Hub.
+1. **Build** a FAISS dense-vector index from a scraped corpus using Anaconda Desktop's local embedding server.
 2. **Retrieve** the most relevant passages for a question with instruction-following embeddings.
 3. **Generate** grounded, citation-enforced answers from a locally-served Qwen2.5-14B-Instruct model.
 4. **Serve** the pipeline as a FastAPI endpoint.
@@ -46,24 +46,11 @@ By the end of this guide you will be able to:
 
 ## What is Anaconda Desktop?
 
-[Anaconda Desktop](https://www.anaconda.com/products/desktop) runs large language models **locally** on your own machine and exposes them through an OpenAI-compatible HTTP API at `localhost:8080`. You pick a model from Anaconda's curated catalog, click **Start Server**, and the rest of this project talks to it over plain `requests` — no API keys, no third-party SDKs, no HuggingFace Hub calls. Both the embedding model (Qwen3-Embedding-8B) and the chat model (Qwen2.5-14B-Instruct) are served this way, which is what makes the whole pipeline reproducible and supply-chain clean.
+[Anaconda Desktop](https://www.anaconda.com/products/desktop) runs large language models **locally** on your own machine and exposes them through an OpenAI-compatible HTTP API at `localhost:8080`. You pick a model from Anaconda's curated catalog, click **Start Server**, and the rest of this project talks to it over plain `requests`. Both the embedding model (Qwen3-Embedding-8B) and the chat model (Qwen2.5-14B-Instruct) are served this way — model weights come from Anaconda's curated catalog, which keeps the whole pipeline reproducible and supply-chain clean.
 
 ## What is Evidently AI?
 
 [Evidently AI](https://www.evidentlyai.com) is an open-source library for evaluating and monitoring ML models and LLM pipelines. Here the evaluation harness computes reproducible heuristic scores (no LLM-as-judge) and renders them through an Evidently **`DataSummaryPreset`** report — `python eval/run_eval.py --report` builds `eval/report.html` with per-metric statistics across the benchmark queries. Installed from the Anaconda `main` channel (added Q1 2026) — no pip required.
-
----
-
-## V1 → V2: What changed and why
-
-| Failure mode (V1) | Root cause | V2 fix |
-|---|---|---|
-| Hallucinated citations | LLM invented sources | Retrieved chunk metadata enforced in response schema |
-| Outdated corpus | Watermarked PDF, no update path | Live scraper targeting merckmanuals.com |
-| Manual, fragile model serving | hand-run llama-cpp with no standard API | Anaconda Desktop serves Qwen2.5-14B-Instruct via an OpenAI-compatible local endpoint — swap models with no code changes |
-| Self-judging evaluation | Mistral scored its own output | Custom heuristic scoring — no LLM-as-judge, fully reproducible; Evidently available for deeper analysis |
-| BM25 only | Missed semantic similarity | FAISS dense retrieval with Qwen3-Embedding-8B instruction-following embeddings — no separate reranker needed |
-| Dependency on external APIs | Reddit V2 roadmap asked about migrating to hosted models (Claude/OpenAI API) | V2 went the opposite direction: fully local via Anaconda Desktop — no external API calls, data never leaves your machine |
 
 ---
 
@@ -111,10 +98,11 @@ Runs entirely locally:
 - An **Anaconda account** to sign in to Anaconda Desktop (organization users sign in with their assigned credentials)
 - Python 3.12 (installed by the environment file)
 - **~32 GB RAM recommended.** The default models (Qwen2.5-14B-Instruct + Qwen3-Embedding-8B) use roughly 22 GB while both servers run. On a smaller machine, see *Running on less RAM* below.
+- **Speed expectation:** answers take roughly 1–3 minutes each — local inference on a 14B model is thorough, not instant.
 
-**External dependencies (classified):**
-- **Anaconda Desktop model server** — *Tier 3 (no fallback)*: required; serves both the embedding and inference models. This is the point of the secure-by-default story, so the dependency is intentional.
-- **Merck Manual website** (scraping step) — *Tier 2 (fallback available)*: a public source; if unreachable, substitute the small sample corpus in `data/raw/`.
+**Dependencies:**
+- **Anaconda Desktop** — required. The models run here; there's no cloud or remote fallback (that's the point — everything stays on your machine).
+- **Merck Manual website** — used only to scrape the source text. If it's unreachable, a sample corpus in `data/raw/` lets you keep going.
 
 > **Runs on Apple Silicon and any CPU-only machine.** The full pipeline — scraping, indexing, API, and UI — runs locally via Anaconda Desktop. No GPU required.
 
