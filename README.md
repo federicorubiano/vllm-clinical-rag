@@ -8,7 +8,7 @@ Powered by Anaconda Desktop local inference (Qwen2.5-14B-Instruct) and FAISS den
 
 > *"If you can't reproduce it, you can't trust it. If you can't trust it, you can't ship it."*
 
-Every model weight enters through Anaconda's curated catalog — auditable provenance from install to inference. This is what **secure by default** looks like end to end:
+Models come from Anaconda Desktop's local catalog and Python packages from the Anaconda `main` channel, so the whole setup installs reproducibly and runs entirely on your own machine:
 `ana login` → `conda env create` → open Anaconda Desktop → run locally
 
 ## Audience
@@ -38,7 +38,7 @@ By the end of this guide you will be able to:
 >
 > Nothing produced by this system — including all generated text, citations, and clinical summaries — constitutes medical advice, diagnosis, or treatment. The system may produce inaccurate, incomplete, or outdated information even when citing real sources.
 >
-> **Always consult a qualified, licensed healthcare professional before making any clinical decision.** Do not use this tool in any real patient care setting. The authors, contributors, and Anaconda, Inc. accept no liability whatsoever for decisions made on the basis of this system's output.
+> **Always consult a qualified, licensed healthcare professional before making any clinical decision.** Do not use this tool in any real patient care setting. The authors and contributors accept no liability whatsoever for decisions made on the basis of this system's output.
 
 ---
 
@@ -48,7 +48,7 @@ By the end of this guide you will be able to:
 
 ## What is Anaconda Desktop?
 
-[Anaconda Desktop](https://www.anaconda.com/products/desktop) runs large language models **locally** on your own machine and exposes them through an OpenAI-compatible HTTP API at `localhost:8080`. You pick a model from Anaconda's curated catalog, click **Start Server**, and the rest of this project talks to it over plain `requests`. Both the embedding model (Qwen3-Embedding-8B) and the chat model (Qwen2.5-14B-Instruct) are served this way — model weights come from Anaconda's curated catalog, which keeps the whole pipeline reproducible and supply-chain clean.
+[Anaconda Desktop](https://www.anaconda.com/products/desktop) runs large language models **locally** on your own machine and exposes them through an OpenAI-compatible HTTP API at `localhost:8080`. You pick a model from Anaconda Desktop's catalog, click **Start Server**, and the rest of this project talks to it over plain `requests`. Both the embedding model (Qwen3-Embedding-8B) and the chat model (Qwen2.5-14B-Instruct) are served this way — the weights come from Anaconda Desktop's catalog, which keeps the pipeline reproducible.
 
 ## What is Evidently AI?
 
@@ -198,7 +198,7 @@ This launches both models and writes their URLs into `.env` (`EMBEDDING_API_URL`
 > anaconda ai servers --json    # read each server's openai_url → put in .env
 > ```
 
-> No GPU required locally. Model weights come once from Anaconda's curated catalog.
+> No GPU required locally. Model weights download once via Anaconda Desktop.
 
 **✅ Checkpoint:** `anaconda ai servers` lists **both** as `running`, and `.env`'s `EMBEDDING_API_URL` / `INFERENCE_API_URL` now point at their two ports.
 
@@ -326,7 +326,7 @@ After this, `anaconda ai models`, `launch`, and `servers` all work against the r
 
 | Package | Role | Source |
 |---|---|---|
-| **Anaconda Desktop** | Local model server — Qwen2.5-14B-Instruct (inference) + Qwen3-Embedding-8B (embeddings). Weights served from Anaconda's curated catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
+| **Anaconda Desktop** | Local model server — Qwen2.5-14B-Instruct (inference) + Qwen3-Embedding-8B (embeddings). Weights served from Anaconda Desktop's local catalog | [Anaconda Desktop](https://www.anaconda.com/products/desktop) |
 | **FAISS** | Vector similarity search (CPU) | Anaconda `main` (faiss-cpu) |
 | **Gradio** | Interactive demo UI | Anaconda `main` |
 | **Evidently AI** | RAG evaluation and monitoring | Anaconda `main` (added Q1 2026) |

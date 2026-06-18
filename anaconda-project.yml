@@ -2,7 +2,7 @@ name: anaconda-clinical-rag
 description: >
   RAG over the Merck Manual on Anaconda's local stack: Qwen2.5-14B-Instruct
   generation + Qwen3-Embedding-8B retrieval, served locally by Anaconda Desktop.
-  All packages from Anaconda's curated channels; runs on CPU, no GPU required.
+  All packages from the Anaconda main channel; runs on CPU, no GPU required.
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 commands:
