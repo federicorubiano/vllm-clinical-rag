@@ -52,17 +52,12 @@ DESKTOP_API_BASE = (
 EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-8B")
 
 # Chunking — word-based, no tokenizer dependency.
-# Medical text tokenizes at ~2 tokens/word due to specialized terminology.
-# 200 words ≈ 400 tokens — stays safely under Desktop's 512-token n_batch
-# limit to avoid multi-pass pooling bug (SIGTRAP / exit code 133).
-CHUNK_SIZE_WORDS    = 200
-CHUNK_OVERLAP_WORDS = 30
+# Medical text tokenizes at ~1.4 tokens/word, so 350 words ≈ 490 tokens.
+CHUNK_SIZE_WORDS    = 350
+CHUNK_OVERLAP_WORDS = 50
 
-# Embedding batch size — set to 1 to avoid Metal/KV-cache assertion crash
-# in Anaconda Desktop's llama.cpp server when processing parallel slots.
-# Desktop allocates a 40960-token KV cache per slot; sequential processing
-# sidesteps the multi-slot contention that causes exit code 133.
-BATCH_SIZE = 1
+# Number of chunks sent per /v1/embeddings request.
+BATCH_SIZE = 8
 
 logging.basicConfig(
     level=logging.INFO,

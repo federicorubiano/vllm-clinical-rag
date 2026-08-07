@@ -223,7 +223,7 @@ Chunked + embedded 156 passages
 Wrote data/index/merck.faiss (156 vectors)
 ```
 
-> ℹ️ Indexing uses the embedding server you started in Step 4. If you hit an `exit code 133` crash, see **Known issues** below — keep `CHUNK_SIZE_WORDS` at 200.
+> ℹ️ Indexing uses the embedding server you started in Step 4.
 
 ### Step 6: Start the API
 
@@ -280,30 +280,15 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 **FAISS index not found**
 → Run `python scripts/build_index.py` to generate `data/index/merck.faiss` (with the embedding server running).
 
-**Embedding step crashes with `exit code 133`**
-→ Known Anaconda Desktop bug on long chunks — keep `CHUNK_SIZE_WORDS` at 200. See **Known issues** below.
-
 ---
 
 ## Known issues and workarounds
 
-### ⚠️ Anaconda Desktop: Qwen3-Embedding-8B crashes on chunks > 512 tokens (exit code 133)
+### Chunk size and embedding batch size
 
-**Symptom:** `build_index.py` runs successfully for several chunks, then `RemoteDisconnected` error mid-run. Desktop shows "Errored" badge with exit code 133.
+`CHUNK_SIZE_WORDS = 350` and `BATCH_SIZE = 8` in `scripts/build_index.py`. Verified on Anaconda Desktop 0.23.2: single inputs embed successfully well beyond 20,000 tokens, and multi-input batches return one vector per input. Raise either value if you want larger chunks or faster indexing; changing `CHUNK_SIZE_WORDS` requires rebuilding the index.
 
-**Root cause:** Anaconda Desktop's current llama.cpp build (b8994) crashes with a SIGTRAP (assertion failure) when processing a text chunk that requires multi-pass batching — i.e., any chunk whose token count exceeds the server's `n_batch` limit of 512. This is triggered during LAST-token pooling (the pooling method Qwen3-Embedding uses to produce the final embedding vector) after a split batch. It is a bug in this Desktop build, not in the model itself.
-
-**Current workaround:** `CHUNK_SIZE_WORDS` is set to **200 words** (instead of the ideal 350) to keep all chunks safely under the 512-token limit. Medical text tokenizes at roughly 2 tokens/word, so 200 words ≈ 400 tokens — a safe margin.
-
-**Quality impact:** Smaller chunks mean less context per retrieved passage. To partially compensate, consider increasing `TOP_K` in `.env` from 5 to 8. This retrieves more chunks and preserves total context volume sent to the inference model.
-
-**Proper fixes (pending):**
-
-| Fix | How | Status |
-|---|---|---|
-| Launch the embedder with a smaller context window via `anaconda ai` | Would reduce KV cache and avoid the multi-pass batching that triggers the crash | `anaconda ai` now works (backend fix below), but `launch` doesn't yet expose a `--ctx-size` flag — so keep `CHUNK_SIZE_WORDS=200` |
-| Update Anaconda Desktop | The multi-pass LAST-pooling bug should be fixed in a future Desktop release | Report via Desktop → Support |
-| Increase `TOP_K` | `TOP_K=8` in `.env` partially compensates for the smaller chunk size | ✅ Available now |
+Older Desktop builds crashed on embedding inputs over 512 tokens. If you are on a build before 0.23.2 and `build_index.py` fails mid-run with `RemoteDisconnected` (Desktop shows exit code 133), set `CHUNK_SIZE_WORDS = 200` and `BATCH_SIZE = 1`, or update Desktop.
 
 ---
 
