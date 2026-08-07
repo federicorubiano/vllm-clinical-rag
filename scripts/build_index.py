@@ -52,12 +52,15 @@ DESKTOP_API_BASE = (
 EMBEDDING_MODEL  = os.getenv("EMBEDDING_MODEL", "Qwen3-Embedding-8B")
 
 # Chunking — word-based, no tokenizer dependency.
-# Medical text tokenizes at ~1.4 tokens/word, so 350 words ≈ 490 tokens.
-CHUNK_SIZE_WORDS    = 350
-CHUNK_OVERLAP_WORDS = 50
+# Medical text tokenizes at ~1.4 tokens/word, so 200 words ≈ 280 tokens, keeping
+# each request under the embedding server's 512-token batch limit. Larger chunks
+# and multi-chunk batches can crash the server — see Known issues in the README.
+CHUNK_SIZE_WORDS    = 200
+CHUNK_OVERLAP_WORDS = 30
 
-# Number of chunks sent per /v1/embeddings request.
-BATCH_SIZE = 8
+# One chunk per /v1/embeddings request. Batching multiple chunks per request
+# has been observed to crash the server mid-run.
+BATCH_SIZE = 1
 
 logging.basicConfig(
     level=logging.INFO,
@@ -230,10 +233,6 @@ def main():
 
     log.info(f"\nTotal chunks: {len(all_chunks)}")
 
-    # ── Save chunk metadata ───────────────────────────────────────────────────
-    CHUNKS_PATH.write_text(json.dumps(all_chunks, indent=2), encoding="utf-8")
-    log.info(f"Chunk metadata saved → {CHUNKS_PATH}")
-
     # ── Embed via Anaconda Desktop ────────────────────────────────────────────
     # Wait for Desktop server to be ready before sending embedding requests.
     # Prevents ConnectionRefusedError when server is still loading after a restart.
@@ -250,8 +249,12 @@ def main():
     index = faiss.IndexFlatIP(dim)  # inner product on normalised vecs = cosine
     index.add(embeddings)
 
+    # Write vectors and metadata together, after embedding succeeds, so a failure
+    # mid-run cannot leave chunks.json describing a different set than the index.
     faiss.write_index(index, str(FAISS_PATH))
+    CHUNKS_PATH.write_text(json.dumps(all_chunks, indent=2), encoding="utf-8")
     log.info(f"FAISS index saved → {FAISS_PATH}")
+    log.info(f"Chunk metadata saved → {CHUNKS_PATH}")
 
     # ── Summary ───────────────────────────────────────────────────────────────
     log.info("\n── Index build complete ──────────────────────────────")

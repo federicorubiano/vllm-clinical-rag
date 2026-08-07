@@ -284,11 +284,13 @@ Metrics: groundedness · relevance · citation rate · disclaimer presence · ov
 
 ## Known issues and workarounds
 
-### Chunk size and embedding batch size
+### ⚠️ Embedding server can crash mid-index (exit code 133)
 
-`CHUNK_SIZE_WORDS = 350` and `BATCH_SIZE = 8` in `scripts/build_index.py`. Verified on Anaconda Desktop 0.23.2: single inputs embed successfully well beyond 20,000 tokens, and multi-input batches return one vector per input. Raise either value if you want larger chunks or faster indexing; changing `CHUNK_SIZE_WORDS` requires rebuilding the index.
+**Symptom:** `build_index.py` embeds a number of chunks, then fails with `RemoteDisconnected` or `Connection refused`. The macOS crash log shows `EXC_BREAKPOINT` / `SIGTRAP` with `BUG IN CLIENT OF LIBMALLOC: memory corruption`, and Anaconda Desktop shows the server as errored (exit code 133).
 
-Older Desktop builds crashed on embedding inputs over 512 tokens. If you are on a build before 0.23.2 and `build_index.py` fails mid-run with `RemoteDisconnected` (Desktop shows exit code 133), set `CHUNK_SIZE_WORDS = 200` and `BATCH_SIZE = 1`, or update Desktop.
+**Settings that avoid it:** `CHUNK_SIZE_WORDS = 200` and `BATCH_SIZE = 1` in `scripts/build_index.py`. These keep each request small and send one chunk at a time.
+
+**Still present on Desktop 0.23.2** (reproduced 2026-08-07). Isolated large requests may succeed — single inputs over 20,000 tokens and batches of 8–16 have each returned normally — but a full indexing run with `CHUNK_SIZE_WORDS = 350` and `BATCH_SIZE = 8` crashed the server ~30 seconds in. Treat larger values as unverified.
 
 ---
 
