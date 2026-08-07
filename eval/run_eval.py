@@ -15,7 +15,7 @@ All packages used are available on Anaconda main channel.
 
 Usage:
     # API must be running first:
-    uvicorn src.api:app --host 0.0.0.0 --port 8000
+    uvicorn src.api:app --host 127.0.0.1 --port 8000
 
     # Run evaluation:
     python eval/run_eval.py

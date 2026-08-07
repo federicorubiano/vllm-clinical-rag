@@ -9,7 +9,7 @@ Endpoints:
     GET  /docs           — auto-generated Swagger UI (FastAPI default)
 
 Start:
-    uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
+    uvicorn src.api:app --host 127.0.0.1 --port 8000 --reload
 """
 
 import os

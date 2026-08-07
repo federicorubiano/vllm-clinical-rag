@@ -81,7 +81,7 @@ Runs entirely locally:
         ├── Qwen3-Embedding-8B server  → localhost:8080/v1/embeddings
         └── Qwen2.5-14B-Instruct server            → localhost:8080/v1/chat/completions
     [Your shell]
-        └── FastAPI                    → 0.0.0.0:8000  ← the RAG API
+        └── FastAPI                    → 127.0.0.1:8000  ← the RAG API
 ```
 
 ---
@@ -230,7 +230,7 @@ Wrote data/index/merck.faiss (156 vectors)
 *Start state: the inference model server is running in Anaconda Desktop and the index exists.*
 
 ```bash
-uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
+uvicorn src.api:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 **✅ Checkpoint:** the log prints `API ready.` and `http://localhost:8000/docs` loads the Swagger UI.

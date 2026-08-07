@@ -15,7 +15,7 @@ commands:
     description: "Chunk, embed, and build FAISS index from scraped data"
 
   serve:
-    unix: uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload
+    unix: uvicorn src.api:app --host 127.0.0.1 --port 8000 --reload
     description: "Start the Clinical Knowledge API (Anaconda Desktop inference)"
 
   demo:

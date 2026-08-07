@@ -54,7 +54,7 @@ def main(api_url: str):
         check("API reachable", False, f"cannot connect to {api_url}")
         print()
         print("  Is the API running? Start it with:")
-        print("    uvicorn src.api:app --host 0.0.0.0 --port 8000")
+        print("    uvicorn src.api:app --host 127.0.0.1 --port 8000")
         sys.exit(1)
 
     # ── 2. Query test ─────────────────────────────────────────────────────────

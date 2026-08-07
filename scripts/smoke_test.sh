@@ -49,7 +49,7 @@ DESKTOP_API_URL="${DESKTOP_API_URL:-http://localhost:8080/v1}"   # fallback only
 _env_val() { [ -f ".env" ] && sed -n "s/^$1=//p" ".env" | tail -n 1; }
 EMBEDDING_API_URL="$(_env_val EMBEDDING_API_URL)"; EMBEDDING_API_URL="${EMBEDDING_API_URL:-$DESKTOP_API_URL}"
 INFERENCE_API_URL="$(_env_val INFERENCE_API_URL)"; INFERENCE_API_URL="${INFERENCE_API_URL:-$DESKTOP_API_URL}"
-API_HOST="0.0.0.0"
+API_HOST="127.0.0.1"
 API_PORT="8000"
 API_URL="http://localhost:${API_PORT}"                            # FastAPI backend
 FAISS_PATH="data/index/merck.faiss"
