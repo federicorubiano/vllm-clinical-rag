@@ -22,6 +22,8 @@ env/
 
 # Dot files
 .env
+.env.bak*
+.env.local
 .DS_Store
 .idea/
 .vscode/
